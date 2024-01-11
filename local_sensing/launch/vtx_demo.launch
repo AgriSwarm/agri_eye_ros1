@@ -1,0 +1,18 @@
+<launch>
+    <arg name="camera_number" default="4" />
+    <arg name="config_path" default = "$(find agri_resources)/config/drones/iris_with_realsense/vins.yaml" />
+	<arg name="vins_path" default = "$(find agri_resources)/config/drones/" />
+    <arg name="drone_id" default="0" />
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find local_sensing)/rviz/feature_tracking.rviz" />
+    
+    <node name="feature_tracker" pkg="feature_tracker" type="feature_tracker" output="log">
+        <param name="config_file" type="string" value="$(arg config_path)" />
+        <param name="vins_folder" type="string" value="$(arg vins_path)" />
+    </node>
+
+    <node name="local_sensing" pkg="local_sensing" type="local_sensing" output="screen">
+        <param name="camera_number" type="int" value="$(arg camera_number)" />
+        <remap from="camera/image_raw" to="drone_$(arg drone_id)/color/image_raw" />
+    </node>
+</launch>
