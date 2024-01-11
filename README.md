@@ -1,6 +1,6 @@
 # Agri Eye ROS1
 
-> [!WARNING]
+> [!IMPORTANT]
 > You need [agri_resources](https://github.com/AgriSwarm/agri_resources) and [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono)
 
 ## VTX test
