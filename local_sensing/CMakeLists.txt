@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV REQUIRED)
 
+# catkin_python_setup()
 
 catkin_package(
 #  INCLUDE_DIRS include
@@ -32,5 +33,10 @@ target_link_libraries(local_sensing
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
+
+catkin_install_python(PROGRAMS 
+  scripts/sync_viz.py
+  DESTINATION 
+  ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 add_dependencies(local_sensing ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

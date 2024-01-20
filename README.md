@@ -1,7 +1,7 @@
 # Agri Eye ROS1
 
 > [!IMPORTANT]
-> You need [agri_resources](https://github.com/AgriSwarm/agri_resources) and [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono)
+> You need [agri_resources](https://github.com/AgriSwarm/agri_resources) and [VINS-Mono](https://github.com/libing64/VINS-Mono/tree/noetic-devel)
 
 ## VTX test
 ```bash
