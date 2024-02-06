@@ -3,7 +3,8 @@ Panels:
     Help Height: 0
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /Odometry1
       Splitter Ratio: 0.4651159942150116
     Tree Height: 245
   - Class: rviz/Selection
@@ -216,7 +217,7 @@ Visualization Manager:
               Value: true
             camera:
               Value: true
-            cf1:
+            drone_0_cf:
               Value: true
             odom:
               Value: true
@@ -230,13 +231,12 @@ Visualization Manager:
           Show Names: true
           Tree:
             odom:
-              {}
+              drone_0_cf:
+                {}
             world:
               body:
                 camera:
                   {}
-              cf1:
-                {}
           Update Interval: 0
           Value: true
       Enabled: true
@@ -473,20 +473,39 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: pose_graph
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz/Pose
-      Color: 255; 25; 0
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
       Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: Pose
+      Keep: 3
+      Name: Odometry
+      Position Tolerance: 0.10000000149011612
       Queue Size: 10
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic: /cf1/pose
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /drone_0_cf/odom
       Unreliable: false
       Value: true
   Enabled: true
@@ -551,8 +570,8 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1390
-  X: 241
-  Y: 69
+  X: 570
+  Y: 96
   loop_match_image:
     collapsed: false
   raw_image:

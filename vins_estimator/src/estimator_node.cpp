@@ -211,6 +211,7 @@ void process()
 {
     while (true)
     {
+        // ros::Time last_time = ros::Time::now();
         std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>> measurements;
         std::unique_lock<std::mutex> lk(m_buf);
         con.wait(lk, [&]
@@ -242,7 +243,6 @@ void process()
                     rz = imu_msg->angular_velocity.z;
                     estimator.processIMU(dt, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
                     //printf("imu: dt:%f a: %f %f %f w: %f %f %f\n",dt, dx, dy, dz, rx, ry, rz);
-
                 }
                 else
                 {
@@ -327,6 +327,8 @@ void process()
             pubKeyframe(estimator);
             if (relo_msg != NULL)
                 pubRelocalization(estimator);
+            // ROS_INFO("FPS: %f", 1.0 / (ros::Time::now() - last_time).toSec());
+            // last_time = ros::Time::now();
             //ROS_ERROR("end: %f, at %f", img_msg->header.stamp.toSec(), ros::Time::now().toSec());
         }
         m_estimator.unlock();

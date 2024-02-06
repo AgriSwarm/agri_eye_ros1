@@ -1,5 +1,5 @@
 <launch>
-    <arg name="camera_number" default="4" />
+    <arg name="camera_number" default="5" />
     <arg name="config_path" default = "$(find agri_resources)/config/drones/crazyflie/vins.yaml" />
     <!-- <arg name="config_path" default = "$(find agri_resources)/config/drones/euroc/vins.yaml" /> -->
 	<arg name="vins_path" default = "$(find agri_resources)/config/drones/" />

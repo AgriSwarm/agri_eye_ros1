@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
     cv_bridge
     roslib
     message_generation
+    tf
     )
 
 find_package(OpenCV)

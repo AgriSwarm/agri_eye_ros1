@@ -16,6 +16,7 @@
 #include <eigen3/Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <tf/transform_broadcaster.h>
 #include "keyframe.h"
 #include "utility/tic_toc.h"
 #include "pose_graph.h"
@@ -41,6 +42,7 @@ int skip_cnt = 0;
 bool load_flag = 0;
 bool start_flag = 0;
 double SKIP_DIS = 0;
+int DRONE_ID = 0;
 
 int VISUALIZATION_SHIFT_X;
 int VISUALIZATION_SHIFT_Y;
@@ -60,6 +62,7 @@ ros::Publisher pub_camera_pose_visual;
 ros::Publisher pub_key_odometrys;
 ros::Publisher pub_vio_path;
 ros::Publisher pub_cf_pose;
+ros::Publisher pub_pose_vector;
 nav_msgs::Path no_loop_path;
 
 std::string BRIEF_PATTERN_FILE;
@@ -207,7 +210,7 @@ void send_pose(const Eigen::Vector3d &vio_t, const Eigen::Quaterniond &vio_q, co
     pose_array.header = header;
     pose_array.header.frame_id = "world";
     motion_capture_tracking_msgs::NamedPose pose;
-    pose.name = "cf1";
+    pose.name = "drone_" + std::to_string(DRONE_ID) + "_cf";
     pose.pose.position.x = vio_t.x();
     pose.pose.position.y = vio_t.y();
     pose.pose.position.z = vio_t.z();
@@ -218,6 +221,18 @@ void send_pose(const Eigen::Vector3d &vio_t, const Eigen::Quaterniond &vio_q, co
     pose_array.poses.push_back(pose);
     pose_array.header.stamp = ros::Time::now();
     pub_cf_pose.publish(pose_array);
+
+    static tf::TransformBroadcaster br;
+    tf::Transform transform;
+    tf::Quaternion q;
+
+    transform.setOrigin(tf::Vector3(vio_t.x(), vio_t.y(), vio_t.z()));
+    q.setW(vio_q.w());
+    q.setX(vio_q.x());
+    q.setY(vio_q.y());
+    q.setZ(vio_q.z());
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, header.stamp, "world", "send_body"));
 }
 
 void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
@@ -241,7 +256,7 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     vio_t_cam = vio_t + vio_q * tic;
     vio_q_cam = vio_q * qic;  
 
-    send_pose(vio_t_cam, vio_q_cam, pose_msg->header);
+    send_pose(vio_t, vio_q, pose_msg->header);
 
     if (!VISUALIZE_IMU_FORWARD)
     {
@@ -486,6 +501,7 @@ int main(int argc, char **argv)
     n.getParam("visualization_shift_y", VISUALIZATION_SHIFT_Y);
     n.getParam("skip_cnt", SKIP_CNT);
     n.getParam("skip_dis", SKIP_DIS);
+    n.getParam("drone_id", DRONE_ID);
     std::string config_file;
     n.getParam("config_file", config_file);
     cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
@@ -564,6 +580,7 @@ int main(int argc, char **argv)
     pub_vio_path = n.advertise<nav_msgs::Path>("no_loop_path", 1000);
     pub_match_points = n.advertise<sensor_msgs::PointCloud>("match_points", 100);
     pub_cf_pose = n.advertise<motion_capture_tracking_msgs::NamedPoseArray>("cf_pose", 1000);
+    pub_pose_vector = n.advertise<visualization_msgs::Marker>("pose_vector", 1000);
 
     std::thread measurement_process;
     std::thread keyboard_command_process;
