@@ -55,6 +55,7 @@ public:
 	// world frame( base sequence or first sequence)<----> cur sequence frame  
 	Vector3d w_t_vio;
 	Matrix3d w_r_vio;
+	bool initial_pose_flag;
 
 
 private:

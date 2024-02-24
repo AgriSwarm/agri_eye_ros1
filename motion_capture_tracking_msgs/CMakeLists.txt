@@ -19,7 +19,13 @@ include_directories(
 add_message_files(
     FILES
     NamedPose.msg
-    NamedPoseArray.msg)
+    NamedPoseArray.msg
+    ExtendedNamedPose.msg
+    ExtendedNamedPoseArray.msg
+    EstimatedPose2D.msg
+    EstimatedPose2DArray.msg
+    EstimatedPose3D.msg
+    EstimatedPose3DArray.msg)
 
 generate_messages(
     DEPENDENCIES

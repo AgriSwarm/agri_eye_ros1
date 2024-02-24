@@ -1,0 +1,36 @@
+
+<launch>
+    <arg name="config_path" default="$(find agri_resources)/config/camera/d435_realsense/model.yaml" />
+    <arg name="depth_scaling_factor" default="0.001" />
+    <arg name="inverse_depth" default="false" />
+    <arg name="camera_coordinate" default="true" />
+    <arg name="identity_threshold" default="0.1" />
+    <arg name="tracking_distance" default="0.3" />
+    <arg name="lost_time_threshold" default="3.0" />
+    <arg name="world_frame_id" default="camera_color_frame" />
+    <arg name="drone_id" default="0" />
+
+    <include file="$(find local_sensing)/launch/realsense.xml">
+        <!-- <arg name="color_fps" value="1" /> -->
+    </include>
+
+    <node name="estimate_manager" pkg="pose_estimator" type="pose_estimator" output="screen">
+        <param name="config_file" type="string" value="$(arg config_path)" />
+        <param name="depth_scaling_factor" type="double" value="$(arg depth_scaling_factor)" />
+        <param name="inverse_depth" type="bool" value="$(arg inverse_depth)" />
+        <param name="camera_coordinate" type="bool" value="$(arg camera_coordinate)" />
+        <param name="identity_threshold" type="double" value="$(arg identity_threshold)" />
+        <param name="tracking_distance" type="double" value="$(arg tracking_distance)" />
+        <param name="lost_time_threshold" type="double" value="$(arg lost_time_threshold)" />
+        <param name="world_frame_id" type="string" value="$(arg world_frame_id)" />
+        <remap from="depth" to="/camera/aligned_depth_to_color/image_raw" />
+        <remap from="flower_poses" to="drone_$(arg drone_id)_sensing/flower_poses"/>
+    </node>
+
+    <node name="pose_estimator" pkg="pose_estimator" type="flower_pose_estimator.py" output="screen">
+        <remap from="flower_poses" to="drone_$(arg drone_id)_sensing/flower_poses"/>
+        <remap from="camera/image_raw" to="camera/color/image_raw"/>
+    </node>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find local_sensing)/rviz/realsense.rviz" required="true"/>
+</launch>

@@ -22,8 +22,9 @@ int main(int argc, char **argv) {
     image_transport::ImageTransport it(nh);
 
     ros::NodeHandle pnh("~");
-    int camera_number;
+    int camera_number, fps;
     pnh.param("camera_number", camera_number, 0);
+    pnh.param("fps", fps, 50);
     
     image_transport::Publisher pub = it.advertise("/camera/image_raw", 1);
 
@@ -41,7 +42,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     
-    double fps = 30.0;
+    // double fps = 50.0;
     ros::Rate loop_rate(fps);
 
     while (nh.ok()) {

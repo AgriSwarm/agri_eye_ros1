@@ -24,6 +24,8 @@
 #include "parameters.h"
 #include "motion_capture_tracking_msgs/NamedPose.h"
 #include "motion_capture_tracking_msgs/NamedPoseArray.h"
+#include "motion_capture_tracking_msgs/ExtendedNamedPose.h"
+#include "motion_capture_tracking_msgs/ExtendedNamedPoseArray.h"
 #define SKIP_FIRST_CNT 10
 using namespace std;
 
@@ -204,13 +206,14 @@ void relo_relative_pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 
 }
 
-void send_pose(const Eigen::Vector3d &vio_t, const Eigen::Quaterniond &vio_q, const std_msgs::Header &header)
+void send_pose(const Eigen::Vector3d &vio_t, const Eigen::Quaterniond &vio_q, const std_msgs::Header &header, bool reset_kalman)
 {
-    motion_capture_tracking_msgs::NamedPoseArray pose_array;
+    motion_capture_tracking_msgs::ExtendedNamedPoseArray pose_array;
     pose_array.header = header;
     pose_array.header.frame_id = "world";
-    motion_capture_tracking_msgs::NamedPose pose;
+    motion_capture_tracking_msgs::ExtendedNamedPose pose;
     pose.name = "drone_" + std::to_string(DRONE_ID) + "_cf";
+    pose.reset_kalman = reset_kalman;
     pose.pose.position.x = vio_t.x();
     pose.pose.position.y = vio_t.y();
     pose.pose.position.z = vio_t.z();
@@ -218,6 +221,8 @@ void send_pose(const Eigen::Vector3d &vio_t, const Eigen::Quaterniond &vio_q, co
     pose.pose.orientation.x = vio_q.x();
     pose.pose.orientation.y = vio_q.y();
     pose.pose.orientation.z = vio_q.z();
+    Eigen::Vector3d euler = vio_q.toRotationMatrix().eulerAngles(2, 1, 0);
+    pose.yaw = euler[0];
     pose_array.poses.push_back(pose);
     pose_array.header.stamp = ros::Time::now();
     pub_cf_pose.publish(pose_array);
@@ -255,8 +260,10 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     Quaterniond vio_q_cam;
     vio_t_cam = vio_t + vio_q * tic;
     vio_q_cam = vio_q * qic;  
+    bool reset_kalman = posegraph.initial_pose_flag;
 
-    send_pose(vio_t, vio_q, pose_msg->header);
+    send_pose(vio_t, vio_q, pose_msg->header, reset_kalman);
+    posegraph.initial_pose_flag = false;
 
     if (!VISUALIZE_IMU_FORWARD)
     {
@@ -579,7 +586,7 @@ int main(int argc, char **argv)
     pub_key_odometrys = n.advertise<visualization_msgs::Marker>("key_odometrys", 1000);
     pub_vio_path = n.advertise<nav_msgs::Path>("no_loop_path", 1000);
     pub_match_points = n.advertise<sensor_msgs::PointCloud>("match_points", 100);
-    pub_cf_pose = n.advertise<motion_capture_tracking_msgs::NamedPoseArray>("cf_pose", 1000);
+    pub_cf_pose = n.advertise<motion_capture_tracking_msgs::ExtendedNamedPoseArray>("cf_pose", 1000);
     pub_pose_vector = n.advertise<visualization_msgs::Marker>("pose_vector", 1000);
 
     std::thread measurement_process;

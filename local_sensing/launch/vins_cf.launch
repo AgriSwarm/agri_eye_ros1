@@ -7,7 +7,7 @@
 
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find local_sensing)/rviz/vins_rviz_config.rviz" />
     
-    <node name="feature_tracker" pkg="feature_tracker" type="feature_tracker" output="log">
+    <node name="feature_tracker" pkg="feature_tracker" type="feature_tracker" output="screen">
         <param name="config_file" type="string" value="$(arg config_path)" />
         <param name="vins_folder" type="string" value="$(arg vins_path)" />
     </node>
@@ -30,8 +30,9 @@
         <param name="drones_num" type="int" value="1"/>
     </node> -->
 
-    <node name="local_sensing" pkg="local_sensing" type="local_sensing" output="log">
+    <node name="local_sensing" pkg="local_sensing" type="local_sensing" output="screen">
         <param name="camera_number" type="int" value="$(arg camera_number)" />
+        <param name="fps" type="int" value="100" />
         <remap from="camera/image_raw" to="drone_$(arg drone_id)/color/image_raw" />
     </node>
 </launch>

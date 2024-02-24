@@ -16,7 +16,7 @@ PoseGraph::PoseGraph()
     sequence_cnt = 0;
     sequence_loop.push_back(0);
     base_sequence = 1;
-
+    initial_pose_flag = true;
 }
 
 PoseGraph::~PoseGraph()
@@ -207,6 +207,9 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 	keyframelist.push_back(cur_kf);
     publish();
 	m_keyframelist.unlock();
+
+    // TODO: ここでカルマンフィルタのリセットが必要か検証する
+    // initial_pose_flag = true;
 }
 
 
