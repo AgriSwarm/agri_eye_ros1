@@ -2,10 +2,10 @@
 #define _ESTIMATE_MANAGER_H_
 
 #include <ros/ros.h>
-#include <motion_capture_tracking_msgs/EstimatedPose2D.h>
-#include <motion_capture_tracking_msgs/EstimatedPose2DArray.h>
-#include <motion_capture_tracking_msgs/EstimatedPose3D.h>
-#include <motion_capture_tracking_msgs/EstimatedPose3DArray.h>
+#include <agri_eye_msgs/EstimatedPose2D.h>
+#include <agri_eye_msgs/EstimatedPose2DArray.h>
+#include <agri_eye_msgs/EstimatedPose3D.h>
+#include <agri_eye_msgs/EstimatedPose3DArray.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/sync_policies/exact_time.h>
@@ -60,9 +60,9 @@ namespace pose_estimator
     ros::ServiceServer start_tracking_service_;
     ros::Timer timer_;
     ros::Time last_refind_time_;
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, nav_msgs::Odometry, motion_capture_tracking_msgs::EstimatedPose2DArray>
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, nav_msgs::Odometry, agri_eye_msgs::EstimatedPose2DArray>
       SyncPolicyImageOdomPose;
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, motion_capture_tracking_msgs::EstimatedPose2DArray>
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, agri_eye_msgs::EstimatedPose2DArray>
       SyncPolicyImagePose;
     typedef std::shared_ptr<message_filters::Synchronizer<SyncPolicyImageOdomPose>> 
       SynchronizerImageOdomPose;
@@ -72,7 +72,7 @@ namespace pose_estimator
     SynchronizerImagePose sync_image_pose_;
     std::shared_ptr<message_filters::Subscriber<sensor_msgs::Image>> depth_sub_;
     std::shared_ptr<message_filters::Subscriber<nav_msgs::Odometry>> odom_sync_sub_;
-    std::shared_ptr<message_filters::Subscriber<motion_capture_tracking_msgs::EstimatedPose2DArray>> flower_poses_sub_;
+    std::shared_ptr<message_filters::Subscriber<agri_eye_msgs::EstimatedPose2DArray>> flower_poses_sub_;
 
     camodocal::PinholeCameraPtr m_camera;
     Eigen::Matrix4d body2cam_;
@@ -91,10 +91,10 @@ namespace pose_estimator
 
     void depthOdomPoseCallback(const sensor_msgs::Image::ConstPtr &depth_msg,
                               const nav_msgs::Odometry::ConstPtr &odom_msg,
-                              const boost::shared_ptr<motion_capture_tracking_msgs::EstimatedPose2DArray const> flower_poses_msg);
+                              const boost::shared_ptr<agri_eye_msgs::EstimatedPose2DArray const> flower_poses_msg);
 
     void depthPoseCallback(const sensor_msgs::Image::ConstPtr &depth_msg,
-                          const boost::shared_ptr<motion_capture_tracking_msgs::EstimatedPose2DArray const> flower_poses_msg);
+                          const boost::shared_ptr<agri_eye_msgs::EstimatedPose2DArray const> flower_poses_msg);
     void odomCallback(const nav_msgs::Odometry::ConstPtr &msg);
     void targetCallback(const ros::TimerEvent &event);
     void visualizeFlowerPoses(

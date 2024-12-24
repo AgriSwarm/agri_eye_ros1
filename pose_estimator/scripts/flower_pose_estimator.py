@@ -2,7 +2,7 @@
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from motion_capture_tracking_msgs.msg import EstimatedPose2DArray, EstimatedPose2D
+from agri_eye_msgs.msg import EstimatedPose2DArray, EstimatedPose2D
 import random
 import string
 import sys

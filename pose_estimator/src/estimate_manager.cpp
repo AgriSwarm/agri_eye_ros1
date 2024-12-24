@@ -7,7 +7,7 @@ namespace pose_estimator
     // flower_poses_sub_ = nh_.subscribe("/flower_poses", 1, &EstimateManager::flowerPosesCallback, this);
     // depth_sub_ = nh_.subscribe("/depth", 1, &EstimateManager::depthCallback, this);
     // odom_sub_ = nh_.subscribe("/odom", 1, &EstimateManager::odomCallback, this);
-    // flower_poses_pub_ = nh_.advertise<motion_capture_tracking_msgs::EstimatedPose3DArray>("/flower_poses_3d", 1);
+    // flower_poses_pub_ = nh_.advertise<agri_eye_msgs::EstimatedPose3DArray>("/flower_poses_3d", 1);
 
     std::string config_file;
     nh_.param<std::string>("config_file", config_file, "");
@@ -42,7 +42,7 @@ namespace pose_estimator
     target_flower_pose_pub_ = nh_.advertise<quadrotor_msgs::TrackingPose>("/target_flower_pose", 1);
 
     depth_sub_.reset(new message_filters::Subscriber<sensor_msgs::Image>(nh, "/depth", 50));
-    flower_poses_sub_.reset(new message_filters::Subscriber<motion_capture_tracking_msgs::EstimatedPose2DArray>(nh, "/flower_poses", 100));
+    flower_poses_sub_.reset(new message_filters::Subscriber<agri_eye_msgs::EstimatedPose2DArray>(nh, "/flower_poses", 100));
 
     if (camera_coordinate_)
     {
@@ -133,7 +133,7 @@ namespace pose_estimator
 
   void EstimateManager::depthOdomPoseCallback(const sensor_msgs::Image::ConstPtr &depth_msg,
                                               const nav_msgs::Odometry::ConstPtr &odom_msg,
-                                              const boost::shared_ptr<motion_capture_tracking_msgs::EstimatedPose2DArray const> flower_poses_msg)
+                                              const boost::shared_ptr<agri_eye_msgs::EstimatedPose2DArray const> flower_poses_msg)
   {
     // ROS_INFO("depthOdomPoseCallback");
     if (flower_poses_msg->poses.size() == 0)
@@ -203,7 +203,7 @@ namespace pose_estimator
   }
 
   void EstimateManager::depthPoseCallback(const sensor_msgs::Image::ConstPtr &depth_msg,
-                                          const boost::shared_ptr<motion_capture_tracking_msgs::EstimatedPose2DArray const> flower_poses_msg)
+                                          const boost::shared_ptr<agri_eye_msgs::EstimatedPose2DArray const> flower_poses_msg)
   {
     if (flower_poses_msg->poses.size() == 0)
     {

@@ -12,8 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs
     geometry_msgs
     quadrotor_msgs
-    motion_capture_tracking_msgs
-    camera_model
+    agri_eye_msgs
+    camera_models
     cv_bridge
     roslib
     message_generation
