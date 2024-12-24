@@ -1,6 +1,6 @@
 
 <launch>
-    <arg name="config_path" default="$(find agri_resources)/config/camera/d435_realsense/model.yaml" />
+    <arg name="config_path" default="$(find agri_resources)/config/drones/duckey/orin_nx_distrib.yaml" />
     <arg name="depth_scaling_factor" default="0.001" />
     <arg name="inverse_depth" default="false" />
     <arg name="camera_coordinate" default="true" />
@@ -11,7 +11,6 @@
     <arg name="drone_id" default="0" />
 
     <include file="$(find local_sensing)/launch/realsense.xml">
-        <!-- <arg name="color_fps" value="1" /> -->
     </include>
 
     <node name="estimate_manager" pkg="pose_estimator" type="pose_estimator" output="screen">
@@ -24,13 +23,16 @@
         <param name="lost_time_threshold" type="double" value="$(arg lost_time_threshold)" />
         <param name="world_frame_id" type="string" value="$(arg world_frame_id)" />
         <remap from="depth" to="/camera/aligned_depth_to_color/image_raw" />
-        <remap from="flower_poses" to="drone_$(arg drone_id)_sensing/flower_poses"/>
+        <remap from="flower_poses" to="pose_estimator/flower_poses"/>
     </node>
 
-    <node name="pose_estimator" pkg="pose_estimator" type="flower_pose_estimator.py" output="screen">
+    <!-- <node name="pose_estimator" pkg="pose_estimator" type="flower_pose_estimator.py" output="screen">
         <remap from="flower_poses" to="drone_$(arg drone_id)_sensing/flower_poses"/>
         <remap from="camera/image_raw" to="camera/color/image_raw"/>
+    </node> -->
+    <node name="pose_estimator" pkg="pose_estimator" type="fake_flower_pose.py" output="screen">
+        <param name="drone_id" type="int" value="$(arg drone_id)" />
     </node>
 
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find local_sensing)/rviz/realsense.rviz" required="true"/>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find agri_resources)/rviz/vision_demo.rviz" required="true"/>
 </launch>

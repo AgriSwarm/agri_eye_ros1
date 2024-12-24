@@ -21,7 +21,14 @@ namespace pose_estimator
     nh_.param("world_frame_id", world_frame_id_, std::string("world"));
     nh_.param("est_detect_pose_rate", est_detect_pose_rate_, 10.0);
 
-    auto camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(config_file.c_str());
+    cv::FileStorage general_fs;
+    general_fs.open(config_file.c_str(), cv::FileStorage::READ);
+    int pn = config_file.find_last_of('/');
+    std::string configPath = config_file.substr(0, pn);
+
+    std::string camera_calib_path = (std::string) general_fs["color_cam_calib"];
+    camera_calib_path = configPath + "/" + camera_calib_path;
+    auto camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(camera_calib_path.c_str());
     m_camera = boost::dynamic_pointer_cast<camodocal::PinholeCamera>(camera);
     if(m_camera == nullptr)
     {
@@ -29,10 +36,13 @@ namespace pose_estimator
       return;
     }
 
-    body2cam_ << 0.0, 0.0, 1.0, 0.0,
-                  -1.0, 0.0, 0.0, 0.0,
-                  0.0, -1.0, 0.0, 0.0,
-                  0.0, 0.0, 0.0, 1.0;
+    cv::Mat T_imu_cam, T_base_imu;
+    Eigen::Matrix4d imu2cam_, base2imu;
+    general_fs["imu_T_depth_cam"] >> T_imu_cam;
+    general_fs["base_T_imu"] >> T_base_imu;
+    cv::cv2eigen(T_imu_cam, imu2cam_);
+    cv::cv2eigen(T_base_imu, base2imu);
+    body2cam_ = base2imu * imu2cam_;
 
     navigation_mode_ = Mode::ON_SEARCH;
     capture_area_radius_ = tracking_distance_ + capture_area_margin_;
@@ -40,6 +50,7 @@ namespace pose_estimator
     flower_poses_marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/flower_poses_marker", 1);
     target_pose_marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/target_pose_marker", 1);
     target_flower_pose_pub_ = nh_.advertise<quadrotor_msgs::TrackingPose>("/target_flower_pose", 1);
+    pose_estimate_delay_pub = nh.advertise<std_msgs::Float32>("pose_estimate_delay", 1000);
 
     depth_sub_.reset(new message_filters::Subscriber<sensor_msgs::Image>(nh, "/depth", 50));
     flower_poses_sub_.reset(new message_filters::Subscriber<agri_eye_msgs::EstimatedPose2DArray>(nh, "/flower_poses", 100));
@@ -167,23 +178,16 @@ namespace pose_estimator
 
     for (auto &pose : flower_poses_msg->poses)
     {
-      uint16_t val = cv_ptr->image.at<uint16_t>(pose.y, pose.x);
-      float depth;
-      if (inverse_depth_){
-        depth = m_camera->getParameters().fx()/(val*depth_scaling_factor_);
-      }else{
-        depth = val*depth_scaling_factor_;
-      }
-      Eigen::Vector3d point, point_w, normal;
       FlowerPose flower_pose;
+      Eigen::Vector3d point, normal;
+      point = LiftProjective(Eigen::Vector4d(pose.x_1, pose.y_1, pose.x_2, pose.y_2), cv_ptr);
       normal << pose.normal.x, pose.normal.y, pose.normal.z;
-      // TODO: Analyze this function
-      m_camera->liftProjective(Eigen::Vector2d(pose.x, pose.y), point);
-      // TODO: Add the depth to the point
-      point_w = depth * cam_R * point + cam_t;
-      flower_pose.position = point_w;
+      
+      flower_pose.position = cam_R * point + cam_t;
       flower_pose.normal = cam_R * normal;
-      flower_pose.probability = pose.probability;
+      // flower_pose.probability = pose.probability;
+      flower_pose.pos_prob = pose.pos_prob;
+      flower_pose.ori_prob = pose.ori_prob;
       flower_poses_.push_back(flower_pose);
     }
 
@@ -191,8 +195,36 @@ namespace pose_estimator
     {
       return;
     }
+
+    double delay = (ros::Time::now().toSec() - flower_poses_msg->header.stamp.toSec()) * 1000;
+    std_msgs::Float32 delay_msg;
+    delay_msg.data = delay;
+    pose_estimate_delay_pub.publish(delay_msg);
+
     selectTargetFlowerPose(flower_poses_);
     visualizeFlowerPoses(flower_poses_, flower_poses_marker_pub_, Color::RED);
+  }
+
+  Eigen::Vector3d EstimateManager::LiftProjective(Eigen::Vector4d rect, cv_bridge::CvImagePtr cv_ptr)
+  {
+    // calculate center of the rectangle
+    Eigen::Vector2d center;
+    center << (rect(0) + rect(2)) / 2, (rect(1) + rect(3)) / 2;
+    // calculate depth
+    uint16_t val = cv_ptr->image.at<uint16_t>(center(1), center(0));
+    float depth;
+    if (inverse_depth_)
+    {
+      depth = m_camera->getParameters().fx() / (val * depth_scaling_factor_);
+    }
+    else
+    {
+      depth = val * depth_scaling_factor_;
+    }
+    // calculate point
+    Eigen::Vector3d point;
+    m_camera->liftProjective(center, point);
+    return depth * point;
   }
 
   void EstimateManager::odomCallback(const nav_msgs::Odometry::ConstPtr &msg)
@@ -224,29 +256,16 @@ namespace pose_estimator
 
     for (auto &pose : flower_poses_msg->poses)
     {
-      uint16_t val = cv_ptr->image.at<uint16_t>(pose.y, pose.x);
-      if (val == 0)
-      {
-        continue;
-      }
-      // uint16_t val = cv_ptr->image.at<uint16_t>(cv_ptr->image.rows/2, cv_ptr->image.cols/2);
-      Eigen::Vector2d center_pose;
-      center_pose << cv_ptr->image.cols/2, cv_ptr->image.rows/2;
-      float depth;
-      if (inverse_depth_){
-        depth = m_camera->getParameters().fx()/(val*depth_scaling_factor_);
-      }else{
-        depth = val*depth_scaling_factor_;
-      }
-      Eigen::Vector3d point, point_w, normal;
       FlowerPose flower_pose;
+      Eigen::Vector3d point, normal;
+      point = LiftProjective(Eigen::Vector4d(pose.x_1, pose.y_1, pose.x_2, pose.y_2), cv_ptr);
       normal << pose.normal.x, pose.normal.y, pose.normal.z;
-      m_camera->liftProjective(Eigen::Vector2d(pose.x, pose.y), point);
-      // m_camera->liftProjective(center_pose, point);
-      point_w = depth * cam_R * point + cam_t;
-      flower_pose.position = point_w;
+
+      flower_pose.position = cam_R * point + cam_t;
       flower_pose.normal = cam_R * normal;
-      flower_pose.probability = pose.probability;
+      // flower_pose.probability = pose.probability;
+      flower_pose.pos_prob = pose.pos_prob;
+      flower_pose.ori_prob = pose.ori_prob;
       flower_poses.push_back(flower_pose);
     }
 
@@ -254,6 +273,12 @@ namespace pose_estimator
     {
       return;
     }
+
+    double delay = (ros::Time::now().toSec() - flower_poses_msg->header.stamp.toSec()) * 1000;
+    std_msgs::Float32 delay_msg;
+    delay_msg.data = delay;
+    pose_estimate_delay_pub.publish(delay_msg);
+
     selectTargetFlowerPose(flower_poses);
     visualizeFlowerPoses(flower_poses, flower_poses_marker_pub_, Color::RED);
   }

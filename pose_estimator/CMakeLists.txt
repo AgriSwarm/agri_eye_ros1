@@ -21,7 +21,12 @@ find_package(catkin REQUIRED COMPONENTS
     cv_bridge
     )
 
+SET("OpenCV_DIR"  "/usr/local/share/OpenCV/")
 find_package(OpenCV REQUIRED)
+if(NOT OpenCV_FOUND)
+    message(FATAL_ERROR "OpenCV not found.")
+endif()
+
 find_package(Ceres REQUIRED)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -53,15 +58,17 @@ add_executable(fake_estimator
 
 target_link_libraries(pose_estimator 
     ${catkin_LIBRARIES}  
-    ${OpenCV_LIBS} 
+    ${OpenCV_LIBRARIES}
 ) 
 
 target_link_libraries(fake_estimator 
     ${catkin_LIBRARIES}  
+    ${OpenCV_LIBRARIES}
 )
 # message("catkin_lib  ${catkin_LIBRARIES}")
 
 catkin_install_python(PROGRAMS 
   scripts/flower_pose_estimator.py
+  scripts/fake_flower_pose.py
   DESTINATION 
   ${CATKIN_PACKAGE_BIN_DESTINATION})

@@ -16,11 +16,13 @@
 #include "camodocal/camera_models/CataCamera.h"
 #include "camodocal/camera_models/PinholeCamera.h"
 #include <cv_bridge/cv_bridge.h>
+#include <opencv2/core/eigen.hpp>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <quadrotor_msgs/TrackingPose.h>
 #include <std_srvs/Empty.h>
 #include <std_srvs/SetBool.h>
+#include <std_msgs/Float32.h>
 
 namespace pose_estimator
 {
@@ -28,7 +30,8 @@ namespace pose_estimator
   {
     Eigen::Vector3d position;
     Eigen::Vector3d normal;
-    float probability;
+    float pos_prob;
+    float ori_prob;
   };
   typedef std::vector<FlowerPose> FlowerPoseArray;
   typedef std::shared_ptr<FlowerPose> FlowerPosePtr;
@@ -56,7 +59,7 @@ namespace pose_estimator
   private:
     ros::NodeHandle nh_;
     ros::Subscriber extrinsic_sub_, odom_sub_;
-    ros::Publisher flower_poses_pub_, flower_poses_marker_pub_, target_flower_pose_pub_, target_pose_marker_pub_;
+    ros::Publisher flower_poses_pub_, flower_poses_marker_pub_, target_flower_pose_pub_, target_pose_marker_pub_, pose_estimate_delay_pub;
     ros::ServiceServer start_tracking_service_;
     ros::Timer timer_;
     ros::Time last_refind_time_;
@@ -101,6 +104,8 @@ namespace pose_estimator
       const FlowerPoseArray &flower_poses, 
       ros::Publisher &pub,
       Color color);
+
+    Eigen::Vector3d LiftProjective(Eigen::Vector4d rect, cv_bridge::CvImagePtr cv_ptr);
 
     void selectTargetFlowerPose(FlowerPoseArray &flower_poses);
     FlowerPosePtr searchNearbyFlowerPose(const FlowerPoseArray &flower_poses, double threshold_distance);

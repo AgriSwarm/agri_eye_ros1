@@ -25,15 +25,16 @@ void setFakeFlowerPoses()
     FlowerPose pose;
     pose.position = Eigen::Vector3d(0.0, 0.0, 0.0);
     pose.normal = Eigen::Vector3d(0.5, 1.0, 0.2);
-    pose.probability = 1.0;
+    pose.pos_prob = 1.0;
+    pose.ori_prob = 1.0;
     fake_flower_poses_.push_back(pose);
     pose.position = Eigen::Vector3d(3.0, 0.0, 0.0);
     pose.normal = Eigen::Vector3d(0.2, 0.9, 0.2);
-    pose.probability = 1.0;
+    pose.pos_prob = 1.0;
     fake_flower_poses_.push_back(pose);
     pose.position = Eigen::Vector3d(0.0, 3.0, 0.0);
     pose.normal = Eigen::Vector3d(0.3, 1.3, 0.2);
-    pose.probability = 1.0;
+    pose.pos_prob = 1.0;
     fake_flower_poses_.push_back(pose);
 }
 
@@ -48,7 +49,8 @@ FlowerPoseArray getFakeFlowerPosesWithNoise()
         FlowerPose noisy_pose;
         noisy_pose.position = pose.position + Eigen::Vector3d::Random() * translation_noise;
         noisy_pose.normal = pose.normal + Eigen::Vector3d::Random() * rotation_noise;
-        noisy_pose.probability = pose.probability;
+        noisy_pose.pos_prob = pose.pos_prob;
+        noisy_pose.ori_prob = pose.ori_prob;
         flower_poses.push_back(noisy_pose);
     }
     return flower_poses;
@@ -135,7 +137,7 @@ for (size_t i = 0; i < flower_poses.size(); i++)
     marker.scale.y = 0.05;
     marker.scale.z = 0.05;
     marker.lifetime = ros::Duration(0.1);
-    // marker.color.a = flower_poses[i].probability;
+    // marker.color.a = flower_poses[i].pos_prob;
     marker.color.a = 1.0;
     if (color == Color::RED)
     {
