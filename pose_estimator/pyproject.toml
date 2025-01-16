@@ -1,0 +1,179 @@
+# ----------------------------------------------------------------------------------------
+# Build system settings
+# ----------------------------------------------------------------------------------------
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ----------------------------------------------------------------------------------------
+# Poetry project settings
+# ----------------------------------------------------------------------------------------
+[tool.poetry]
+name = "ultralytics"
+version = "0.0.1"  # 動的バージョンではなく暫定的に固定値を指定
+description = "Ultralytics YOLOv8 for SOTA object detection, multi-object tracking, instance segmentation, pose estimation and image classification."
+license = "AGPL-3.0"
+readme = "README.md"
+repository = "https://github.com/ultralytics/ultralytics"
+homepage = "https://ultralytics.com"
+authors = ["Glenn Jocher", "Ayush Chaurasia", "Jing Qiu"]
+keywords = ["machine-learning", "deep-learning", "computer-vision", "ML", "DL", "AI", "YOLO", "YOLOv3", "YOLOv5", "YOLOv8", "HUB", "Ultralytics"]
+
+# ----------------------------------------------------------------------------------------
+# Poetry dependencies
+# ----------------------------------------------------------------------------------------
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+matplotlib = ">=3.3.0"
+numpy = ">=1.22.2"
+opencv-python = ">=4.6.0"
+pillow = ">=7.1.2"
+pyyaml = ">=5.3.1"
+requests = ">=2.23.0"
+scipy = ">=1.4.1"
+torch = ">=1.8.0"
+torchvision = ">=0.9.0"
+tqdm = ">=4.64.0"
+psutil = "*"
+py-cpuinfo = "*"
+thop = ">=0.1.1"
+pandas = ">=1.1.4"
+seaborn = ">=0.11.0"
+
+# --- dev関連の依存をオブジェクト形式で定義（extrasを含む場合はここでまとめる） -------------------
+ipython = "*"
+check-manifest = "*"
+pre-commit = "*"
+pytest = "*"
+pytest-cov = "*"
+mkdocs-material = ">=9.5.9"
+mkdocs-jupyter = "*"
+mkdocs-redirects = "*"
+mkdocs-ultralytics-plugin = ">=0.0.43"
+
+# coverage[toml] -> coverage + extras
+coverage = { version = "*", extras = ["toml"] }
+# mkdocstrings[python] -> mkdocstrings + extras
+mkdocstrings = { version = "*", extras = ["python"] }
+
+# --- export, explorer, logging, extra などの依存も同様に定義 --------------------------------
+onnx = { version = ">=1.12.0", optional = true }
+coremltools = { version = ">=7.0", optional = true, markers = "platform_system != 'Windows'" }
+openvino-dev = { version = ">=2023.0", optional = true }
+tensorflow = { version = "<=2.13.1", optional = true }
+tensorflowjs = { version = ">=3.9.0", optional = true }
+
+lancedb = { version = "*", optional = true }
+duckdb = { version = "*", optional = true }
+streamlit = { version = "*", optional = true }
+
+comet = { version = "*", optional = true }
+tensorboard = { version = ">=2.13.0", optional = true }
+dvclive = { version = ">=2.12.0", optional = true }
+
+"hub-sdk" = { version = ">=0.0.2", optional = true }
+albumentations = { version = ">=1.0.3", optional = true }
+pycocotools = { version = ">=2.0.6", optional = true }
+
+# ----------------------------------------------------------------------------------------
+# Extras: 依存パッケージ名を “素の名前” で列挙
+# ----------------------------------------------------------------------------------------
+[tool.poetry.extras]
+dev = [
+  "ipython",
+  "check-manifest",
+  "pre-commit",
+  "pytest",
+  "pytest-cov",
+  "coverage",
+  "mkdocs-material",
+  "mkdocs-jupyter",
+  "mkdocs-redirects",
+  "mkdocs-ultralytics-plugin",
+  "mkdocstrings"
+]
+export = [
+  "onnx",
+  "coremltools",
+  "openvino-dev",
+  "tensorflow",
+  "tensorflowjs"
+]
+explorer = [
+  "lancedb",
+  "duckdb",
+  "streamlit"
+]
+logging = [
+  "comet",
+  "tensorboard",
+  "dvclive"
+]
+extra = [
+  "hub-sdk",
+  "albumentations",
+  "pycocotools"
+]
+
+# ----------------------------------------------------------------------------------------
+# CLI スクリプト定義
+# ----------------------------------------------------------------------------------------
+[tool.poetry.scripts]
+yolo = "ultralytics.cfg:entrypoint"
+ultralytics = "ultralytics.cfg:entrypoint"
+
+# ----------------------------------------------------------------------------------------
+# Setuptools 設定
+# ----------------------------------------------------------------------------------------
+[tool.setuptools]
+packages = { find = { where = ["."], include = ["ultralytics", "ultralytics.*"] } }
+package-data = { "ultralytics" = ["**/*.yaml"], "ultralytics.assets" = ["*.jpg"] }
+
+[tool.setuptools.dynamic]
+version = { attr = "ultralytics.__version__" }
+
+# ----------------------------------------------------------------------------------------
+# Pytest 設定
+# ----------------------------------------------------------------------------------------
+[tool.pytest]
+norecursedirs = [".git", "dist", "build"]
+addopts = "--doctest-modules --durations=30 --color=yes"
+
+# ----------------------------------------------------------------------------------------
+# Coverage 設定
+# ----------------------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["ultralytics/"]
+data_file = "tests/.coverage"
+omit = ["ultralytics/utils/callbacks/*"]
+
+# ----------------------------------------------------------------------------------------
+# isort / yapf / ruff / docformatter / codespell など lint/formatter ツール設定
+# ----------------------------------------------------------------------------------------
+[tool.isort]
+line_length = 120
+multi_line_output = 0
+
+[tool.yapf]
+based_on_style = "pep8"
+spaces_before_comment = 2
+column_limit = 120
+coalesce_brackets = true
+spaces_around_power_operator = true
+space_between_ending_comma_and_closing_bracket = true
+split_before_closing_bracket = false
+split_before_first_argument = false
+
+[tool.ruff]
+line-length = 120
+
+[tool.docformatter]
+wrap-summaries = 120
+wrap-descriptions = 120
+in-place = true
+pre-summary-newline = true
+close-quotes-on-newline = true
+
+[tool.codespell]
+ignore-words-list = "crate,nd,ned,strack,dota,ane,segway,fo,gool,winn,commend,bloc,nam,afterall"
+skip = '*.pt,*.pth,*.torchscript,*.onnx,*.tflite,*.pb,*.bin,*.param,*.mlmodel,*.engine,*.npy,*.data*,*.csv,*pnnx*,*venv*,*translat*,__pycache__*,*.ico,*.jpg,*.png,*.mp4,*.mov,/runs,/.git,./docs/??/*.md,./docs/mkdocs_??.yml'

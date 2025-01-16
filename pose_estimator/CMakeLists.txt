@@ -68,7 +68,9 @@ target_link_libraries(fake_estimator
 # message("catkin_lib  ${catkin_LIBRARIES}")
 
 catkin_install_python(PROGRAMS 
-  scripts/flower_pose_estimator.py
-  scripts/fake_flower_pose.py
+#   scripts/flower_pose_estimator.py
+#   scripts/fake_flower_pose.py
+  scripts/flower_detector.py
+  scripts/image_talker.py
   DESTINATION 
   ${CATKIN_PACKAGE_BIN_DESTINATION})

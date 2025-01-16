@@ -42,6 +42,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>camera_models</build_depend>
   <build_depend>agri_eye_msgs</build_depend>
+  <build_depend>quadrotor_msgs</build_depend>
 
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
@@ -51,6 +52,7 @@
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>agri_eye_msgs</run_depend>
+  <run_depend>quadrotor_msgs</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
