@@ -36,6 +36,8 @@ class FlowerPoseEstimator:
         self.yolo_checkpoint = rospy.get_param('~yolo_checkpoint', default_yolo)
         self.sixd_checkpoint = rospy.get_param('~sixd_checkpoint', default_sixd)
         self.verbose = rospy.get_param('~verbose', False)
+        self.estimate_whole_pose = rospy.get_param('~estimate_whole_pose', False)
+
 
         # YOLOロード
         rospy.loginfo("Loading YOLO model: %s", self.yolo_checkpoint)
@@ -80,31 +82,45 @@ class FlowerPoseEstimator:
 
     def callback(self, image_msg):
         start_time = rospy.Time.now()
-        # 1) 画像をOpenCVに変換
+        # 画像をOpenCVに変換
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
-        # 2) コード3同様 180度回転
+        # 180度回転
         cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
 
-        # 3) YOLOでBBox検出
+        # YOLOでBBox検出
         results = self.yolo_model.predict(cv_image, conf=self.conf_threshold, verbose=False)
         if len(results) == 0:
             rospy.logwarn("No YOLO inference results.")
             return
-        
+
         if self.verbose:
             print(f"YOLO Inference Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
 
         result = results[0]
         boxes = result.boxes
 
+        if len(boxes) == 0:
+            rospy.logwarn("No boxes detected.")
+            return
+
+        height, width = cv_image.shape[:2]
+
+        # 最大信頼度のボックスのインデックスを特定
+        max_conf_index = None
+        if not self.estimate_whole_pose:
+            max_conf = -1.0
+            for idx, box in enumerate(boxes):
+                conf_val = float(box.conf[0].cpu().numpy())
+                if conf_val > max_conf:
+                    max_conf = conf_val
+                    max_conf_index = idx
+
         pose_array = EstimatedPose2DArray()
         pose_array.header = Header()
         pose_array.header.stamp = image_msg.header.stamp
         pose_array.header.frame_id = "camera_frame"
 
-        height, width = cv_image.shape[:2]
-
-        for box in boxes:
+        for idx, box in enumerate(boxes):
             xyxy = box.xyxy[0].cpu().numpy()  # (x1, y1, x2, y2)
             conf_ = float(box.conf[0].cpu().numpy())
             x1, y1, x2, y2 = map(int, xyxy)
@@ -118,35 +134,33 @@ class FlowerPoseEstimator:
             if cropped.size == 0:
                 continue
 
-            # 4) SixDRepNet で回転行列を推定 → z軸ベクトル抽出 (3D)
-            z_axis_3d, euler = self.get_attitude(cropped)  # (x, y, z)
-
-            # pose_msg.normal に 3Dベクトルを格納
+            # pose_msg の生成
             pose_msg = EstimatedPose2D()
             pose_msg.drone_id = self.drone_id
-            # pose_msg.x_1 = x1c
-            # pose_msg.y_1 = y1c
-            # pose_msg.x_2 = x2c
-            # pose_msg.y_2 = y2c
             pose_msg.x_1 = width - x1c
             pose_msg.y_1 = height - y1c
             pose_msg.x_2 = width - x2c
             pose_msg.y_2 = height - y2c
-            pose_msg.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
-            pose_msg.euler = Vector3(euler[0], euler[1], euler[2])
             pose_msg.pos_prob = conf_
-            pose_msg.ori_prob = 1.0  # 仮
+
+            # 最大信頼度のボックスに対してのみ姿勢推定を実行
+            if self.estimate_whole_pose or (not self.estimate_whole_pose and idx == max_conf_index):
+                z_axis_3d, euler = self.get_attitude(cropped)
+                pose_msg.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
+                pose_msg.euler = Vector3(euler[0], euler[1], euler[2])
+                pose_msg.ori_prob = 1.0
+            else:
+                pose_msg.normal = Vector3(0.0, 0.0, 0.0)
+                pose_msg.euler = Vector3(0.0, 0.0, 0.0)
+                pose_msg.ori_prob = 0.0
 
             pose_array.poses.append(pose_msg)
 
         if self.verbose:
             print(f"Pose Estimation Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
 
-        # 5) コード3の描画フロー
-        itr = 0
+        # 描画処理
         for pose in pose_array.poses:
-            itr += 1
-            # print(f"Pose {itr}:")
             self.draw_pose(cv_image, pose, height, width)
 
         # Publish
@@ -174,7 +188,6 @@ class FlowerPoseEstimator:
         R_np = R[0].cpu().numpy()  # (3,3)
 
         # R_np = np.identity(3)
-        # 各軸に30度ずつ回転
         # R_np = np.dot(R_np, utils.get_R(0.0, 0.3, 0.0))
 
         z_axis = R_np[:, 2]  # (x, y, z)
@@ -190,10 +203,6 @@ class FlowerPoseEstimator:
         rotated_y1 = height - pose.y_1
         rotated_x2 = width - pose.x_2
         rotated_y2 = height - pose.y_2
-        # rotated_x1 = pose.x_1
-        # rotated_y1 = pose.y_1
-        # rotated_x2 = pose.x_2
-        # rotated_y2 = pose.y_2
 
         # BBoxを描画
         cv2.rectangle(
@@ -219,15 +228,15 @@ class FlowerPoseEstimator:
         else:
             nx, ny = 0.0, 0.0
 
-        arrow_length = 30
-        end_x = int(center_x - arrow_length * nx)
-        end_y = int(center_y - arrow_length * ny)
+        # arrow_length = 30
+        # end_x = int(center_x - arrow_length * nx)
+        # end_y = int(center_y - arrow_length * ny)
         # cv2.arrowedLine(cv_image, (center_x, center_y), (end_x, end_y),
         #                 self.arrow_color, 3, tipLength=0.3)
         
         # print(f"Euler: {pose.euler.x:.2f}, {pose.euler.y:.2f}, {pose.euler.z:.2f}")
-        cv_image = utils.draw_axis(cv_image, pose.euler.x, pose.euler.y, pose.euler.z, center_x, center_y)
-        # cv_image = utils.plot_pose_cube(cv_image, pose.euler.x, pose.euler.y, pose.euler.z, center_x, center_y, 50)
+        if pose.ori_prob != 0.0:
+            cv_image = utils.draw_axis(cv_image, pose.euler.x, pose.euler.y, pose.euler.z, center_x, center_y)
 
         # (4) Probabilityテキスト
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -245,7 +254,6 @@ class FlowerPoseEstimator:
                     font, font_scale, (0,0,0), thickness+2)
         cv2.putText(cv_image, ori_text, (rotated_x1, rotated_y1 - 40),
                     font, font_scale, self.ori_text_color, thickness)
-
 
 def main():
     torch.manual_seed(42)
