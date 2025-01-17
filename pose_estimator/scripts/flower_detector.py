@@ -159,6 +159,10 @@ class FlowerPoseEstimator:
             R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
         R_np = R[0].cpu().numpy()  # (3,3)
 
+        # R_np = np.identity(3)
+        # 各軸に30度ずつ回転
+        # R_np = np.dot(R_np, utils.get_R(0.0, 0.3, 0.0))
+
         z_axis = R_np[:, 2]  # (x, y, z)
         euler = cv2.Rodrigues(R_np)[0].flatten()  # (roll, pitch, yaw)
         return z_axis, euler
@@ -204,11 +208,12 @@ class FlowerPoseEstimator:
         arrow_length = 30
         end_x = int(center_x - arrow_length * nx)
         end_y = int(center_y - arrow_length * ny)
-        cv2.arrowedLine(cv_image, (center_x, center_y), (end_x, end_y),
-                        self.arrow_color, 3, tipLength=0.3)
+        # cv2.arrowedLine(cv_image, (center_x, center_y), (end_x, end_y),
+        #                 self.arrow_color, 3, tipLength=0.3)
         
         # print(f"Euler: {pose.euler.x:.2f}, {pose.euler.y:.2f}, {pose.euler.z:.2f}")
-        cv_image = utils.draw_axis(cv_image, pose.euler.y, pose.euler.x, pose.euler.z, center_x, center_y)
+        cv_image = utils.draw_axis(cv_image, pose.euler.x, pose.euler.y, pose.euler.z, center_x, center_y)
+        # cv_image = utils.plot_pose_cube(cv_image, pose.euler.x, pose.euler.y, pose.euler.z, center_x, center_y, 50)
 
         # (4) Probabilityテキスト
         font = cv2.FONT_HERSHEY_SIMPLEX

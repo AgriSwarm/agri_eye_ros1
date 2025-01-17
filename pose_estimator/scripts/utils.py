@@ -9,15 +9,19 @@ import scipy.io as sio
 import cv2
 
 
-def plot_pose_cube(img, yaw, pitch, roll, tdx=None, tdy=None, size=150.):
+def plot_pose_cube(img, roll, pitch, yaw, tdx=None, tdy=None, size=150.):
     # Input is a cv2 image
     # pose_params: (pitch, yaw, roll, tdx, tdy)
     # Where (tdx, tdy) is the translation of the face.
     # For pose we have [pitch yaw roll tdx tdy tdz scale_factor]
 
-    p = pitch * np.pi / 180
-    y = -(yaw * np.pi / 180)
-    r = roll * np.pi / 180
+    # p = pitch * np.pi / 180
+    # y = -(yaw * np.pi / 180)
+    # r = roll * np.pi / 180
+    p = pitch
+    y = yaw
+    r = roll
+    
     if tdx != None and tdy != None:
         face_x = tdx - 0.50 * size 
         face_y = tdy - 0.50 * size
@@ -53,12 +57,13 @@ def plot_pose_cube(img, yaw, pitch, roll, tdx=None, tdy=None, size=150.):
     return img
 
 
-def draw_axis(img, yaw, pitch, roll, tdx=None, tdy=None, size = 100):
+def draw_axis(img, pitch, yaw, roll, tdx=None, tdy=None, size = 100):
 
     # pitch = pitch * np.pi / 180
     # yaw = -(yaw * np.pi / 180)
     # roll = roll * np.pi / 180
-    # yaw = -yaw
+    # print(f"Roll: {roll:.2f}, Pitch: {pitch:.2f}, Yaw: {yaw:.2f}")
+    yaw = 0
 
     if tdx != None and tdy != None:
         tdx = tdx
@@ -80,6 +85,10 @@ def draw_axis(img, yaw, pitch, roll, tdx=None, tdy=None, size = 100):
     # Z-Axis (out of the screen) drawn in blue
     x3 = size * (sin(yaw)) + tdx
     y3 = size * (-cos(yaw) * sin(pitch)) + tdy
+
+    # print(f"X: ({tdx:.2f}, {tdy:.2f}) -> ({x1:.2f}, {y1:.2f})")
+    # print(f"Y: ({tdx:.2f}, {tdy:.2f}) -> ({x2:.2f}, {y2:.2f})")
+    # print(f"Z: ({tdx:.2f}, {tdy:.2f}) -> ({x3:.2f}, {y3:.2f})")
 
     cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),4)
     cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),4)
