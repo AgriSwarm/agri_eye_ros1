@@ -171,6 +171,7 @@ class FlowerPoseEstimator:
 
         if self.verbose:
             print(f"Total Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
+            print(f"Image Delay(ms): {(rospy.Time.now() - image_msg.header.stamp).to_sec() * 1000:.2f}")
 
     def get_attitude(self, bgr_image):
         """
