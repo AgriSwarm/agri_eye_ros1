@@ -78,6 +78,7 @@ class FlowerPoseEstimator:
         rospy.loginfo("FlowerPoseEstimator initialized.")
 
     def callback(self, image_msg):
+        start_time = rospy.Time.now()
         # 1) 画像をOpenCVに変換
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         # 2) コード3同様 180度回転
@@ -88,6 +89,8 @@ class FlowerPoseEstimator:
         if len(results) == 0:
             rospy.logwarn("No YOLO inference results.")
             return
+        
+        print(f"YOLO Inference Time: {rospy.Time.now() - start_time}")
 
         result = results[0]
         boxes = result.boxes
@@ -115,7 +118,6 @@ class FlowerPoseEstimator:
 
             # 4) SixDRepNet で回転行列を推定 → z軸ベクトル抽出 (3D)
             z_axis_3d, euler = self.get_attitude(cropped)  # (x, y, z)
-            # print(f"z_axis_3d: {z_axis_3d}, euler: {euler}")
 
             # pose_msg.normal に 3Dベクトルを格納
             pose_msg = EstimatedPose2D()
@@ -131,6 +133,8 @@ class FlowerPoseEstimator:
 
             pose_array.poses.append(pose_msg)
 
+        print(f"Pose Estimation Time: {rospy.Time.now() - start_time}")
+
         # 5) コード3の描画フロー
         itr = 0
         for pose in pose_array.poses:
@@ -143,6 +147,8 @@ class FlowerPoseEstimator:
         annotated_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding='bgr8')
         annotated_msg.header = image_msg.header
         self.image_pub.publish(annotated_msg)
+
+        print(f"Total Time: {rospy.Time.now() - start_time}")
 
     def get_attitude(self, bgr_image):
         """
