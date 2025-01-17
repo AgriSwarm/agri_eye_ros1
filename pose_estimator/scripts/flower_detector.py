@@ -35,6 +35,7 @@ class FlowerPoseEstimator:
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.3)
         self.yolo_checkpoint = rospy.get_param('~yolo_checkpoint', default_yolo)
         self.sixd_checkpoint = rospy.get_param('~sixd_checkpoint', default_sixd)
+        self.verbose = rospy.get_param('~verbose', False)
 
         # YOLOロード
         rospy.loginfo("Loading YOLO model: %s", self.yolo_checkpoint)
@@ -90,7 +91,8 @@ class FlowerPoseEstimator:
             rospy.logwarn("No YOLO inference results.")
             return
         
-        print(f"YOLO Inference Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
+        if self.verbose:
+            print(f"YOLO Inference Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
 
         result = results[0]
         boxes = result.boxes
@@ -133,7 +135,8 @@ class FlowerPoseEstimator:
 
             pose_array.poses.append(pose_msg)
 
-        print(f"Pose Estimation Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
+        if self.verbose:
+            print(f"Pose Estimation Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
 
         # 5) コード3の描画フロー
         itr = 0
@@ -148,7 +151,8 @@ class FlowerPoseEstimator:
         annotated_msg.header = image_msg.header
         self.image_pub.publish(annotated_msg)
 
-        print(f"Total Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
+        if self.verbose:
+            print(f"Total Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
 
     def get_attitude(self, bgr_image):
         """
