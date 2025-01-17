@@ -83,7 +83,7 @@ class FlowerPoseEstimator:
         # 1) 画像をOpenCVに変換
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         # 2) コード3同様 180度回転
-        # cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
+        cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
 
         # 3) YOLOでBBox検出
         results = self.yolo_model.predict(cv_image, conf=self.conf_threshold, verbose=False)
@@ -124,10 +124,14 @@ class FlowerPoseEstimator:
             # pose_msg.normal に 3Dベクトルを格納
             pose_msg = EstimatedPose2D()
             pose_msg.drone_id = self.drone_id
-            pose_msg.x_1 = x1c
-            pose_msg.y_1 = y1c
-            pose_msg.x_2 = x2c
-            pose_msg.y_2 = y2c
+            # pose_msg.x_1 = x1c
+            # pose_msg.y_1 = y1c
+            # pose_msg.x_2 = x2c
+            # pose_msg.y_2 = y2c
+            pose_msg.x_1 = width - x1c
+            pose_msg.y_1 = height - y1c
+            pose_msg.x_2 = width - x2c
+            pose_msg.y_2 = height - y2c
             pose_msg.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
             pose_msg.euler = Vector3(euler[0], euler[1], euler[2])
             pose_msg.pos_prob = conf_
@@ -182,14 +186,14 @@ class FlowerPoseEstimator:
         コード3と同じ処理 + z軸ベクトルの「2D射影」をここで行う。
         """
         # (1) rectangle: 180度回転を加味して反転
-        # rotated_x1 = width - pose.x_1
-        # rotated_y1 = height - pose.y_1
-        # rotated_x2 = width - pose.x_2
-        # rotated_y2 = height - pose.y_2
-        rotated_x1 = pose.x_1
-        rotated_y1 = pose.y_1
-        rotated_x2 = pose.x_2
-        rotated_y2 = pose.y_2
+        rotated_x1 = width - pose.x_1
+        rotated_y1 = height - pose.y_1
+        rotated_x2 = width - pose.x_2
+        rotated_y2 = height - pose.y_2
+        # rotated_x1 = pose.x_1
+        # rotated_y1 = pose.y_1
+        # rotated_x2 = pose.x_2
+        # rotated_y2 = pose.y_2
 
         # BBoxを描画
         cv2.rectangle(
