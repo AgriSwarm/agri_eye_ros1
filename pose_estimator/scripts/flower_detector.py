@@ -29,19 +29,28 @@ class FlowerPoseEstimator:
         # パラメータ取得
         script_dir = os.path.dirname(os.path.abspath(__file__))
         models_dir = os.path.join(script_dir, '..', '..', 'models')
-        default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
-        default_sixd = os.path.join(models_dir, 'HPE.ckpt')
+        
         self.drone_id = rospy.get_param('~drone_id', 1)
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.3)
-        self.yolo_checkpoint = rospy.get_param('~yolo_checkpoint', default_yolo)
-        self.sixd_checkpoint = rospy.get_param('~sixd_checkpoint', default_sixd)
+        
         self.verbose = rospy.get_param('~verbose', False)
         self.estimate_whole_pose = rospy.get_param('~estimate_whole_pose', False)
+        self.use_tensorrt = rospy.get_param('~use_tensorrt', False)
+        if self.use_tensorrt:
+            default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
+            default_sixd = os.path.join(models_dir, 'HPE.ckpt')
+        else:
+            default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
+            default_sixd = os.path.join(models_dir, 'HPE.ckpt')
 
+        self.yolo_checkpoint = rospy.get_param('~yolo_checkpoint', default_yolo)
+        self.sixd_checkpoint = rospy.get_param('~sixd_checkpoint', default_sixd)
 
         # YOLOロード
         rospy.loginfo("Loading YOLO model: %s", self.yolo_checkpoint)
         self.yolo_model = YOLO(self.yolo_checkpoint)
+        # self.yolo_model.export(format="engine")
+        # self.yolo_model.export(format="engine", device="dla:0", half=True)
 
         # SixDRepNetロード
         rospy.loginfo("Loading SixDRepNet: %s", self.sixd_checkpoint)
@@ -49,7 +58,10 @@ class FlowerPoseEstimator:
         self.sixd_model.eval()
 
         # GPU対応
-        if torch.cuda.is_available():
+        if self.use_tensorrt:
+            self.sixd_model.cuda()
+            rospy.loginfo("Using TensorRT for inference.")
+        elif torch.cuda.is_available():
             self.yolo_model.to('cuda')
             self.sixd_model.cuda()
             rospy.loginfo("Using CUDA for inference.")
