@@ -37,7 +37,7 @@ class FlowerPoseEstimator:
         self.estimate_whole_pose = rospy.get_param('~estimate_whole_pose', False)
         self.use_tensorrt = rospy.get_param('~use_tensorrt', False)
         if self.use_tensorrt:
-            default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
+            default_yolo = os.path.join(models_dir, 'YOLOv8.engine')
             default_sixd = os.path.join(models_dir, 'HPE.ckpt')
         else:
             default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
