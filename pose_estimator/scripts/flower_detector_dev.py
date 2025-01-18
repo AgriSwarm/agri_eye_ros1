@@ -19,6 +19,7 @@ from ultralytics import YOLO
 from torchvision import transforms
 # from module import SixDRepNetModule
 from scripts.module import SixDRepNetModule
+from scripts.module_trt import TensorRTInference
 import scripts.utils as utils
 from PIL import Image as PILImage
 
@@ -38,7 +39,7 @@ class FlowerPoseEstimator:
         self.use_tensorrt = rospy.get_param('~use_tensorrt', False)
         if self.use_tensorrt:
             default_yolo = os.path.join(models_dir, 'YOLOv8.engine')
-            default_sixd = os.path.join(models_dir, 'HPE.ckpt')
+            default_sixd = os.path.join(models_dir, 'sixdrepnet_trt.engine')
         else:
             default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
             default_sixd = os.path.join(models_dir, 'HPE.ckpt')
@@ -53,13 +54,17 @@ class FlowerPoseEstimator:
         # self.yolo_model.export(format="engine", device="dla:0", half=True)
 
         # SixDRepNetロード
-        rospy.loginfo("Loading SixDRepNet: %s", self.sixd_checkpoint)
-        self.sixd_model = SixDRepNetModule.load_from_checkpoint(self.sixd_checkpoint)
-        self.sixd_model.eval()
+        if self.use_tensorrt:
+            rospy.loginfo("Loading SixDRepNet TensorRT engine: %s", self.sixd_checkpoint)
+            self.trt_inference = TensorRTInference(self.sixd_checkpoint)
+        else:
+            rospy.loginfo("Loading SixDRepNet: %s", self.sixd_checkpoint)
+            self.sixd_model = SixDRepNetModule.load_from_checkpoint(self.sixd_checkpoint)
+            self.sixd_model.eval()
 
         # GPU対応
         if self.use_tensorrt:
-            self.sixd_model.cuda()
+            # self.sixd_model.cuda()
             rospy.loginfo("Using TensorRT for inference.")
         elif torch.cuda.is_available():
             self.yolo_model.to('cuda')
@@ -193,12 +198,27 @@ class FlowerPoseEstimator:
         pil_img = PILImage.fromarray(pil_img)
 
         input_tensor = self.transform(pil_img).unsqueeze(0)
-        if torch.cuda.is_available():
-            input_tensor = input_tensor.cuda()
+        # if torch.cuda.is_available():
+        #     input_tensor = input_tensor.cuda()
 
-        with torch.no_grad():
-            R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
-        R_np = R[0].cpu().numpy()  # (3,3)
+        # with torch.no_grad():
+        #     R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
+        # R_np = R[0].cpu().numpy()  # (3,3)
+
+        # input_data = input_tensor.astype(np.float32).ravel()
+        input_data = input_tensor.cpu().numpy().astype(np.float32).ravel()
+
+        if self.use_tensorrt:
+            outputs = self.trt_inference.infer(input_data)
+            R_flat = outputs[0]
+            R_np = np.array(R_flat).reshape(3, 3)
+        else:
+            input_tensor = torch.from_numpy(input_data).unsqueeze(0)
+            if torch.cuda.is_available():
+                input_tensor = input_tensor.cuda()
+            with torch.no_grad():
+                R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
+            R_np = R[0].cpu().numpy()  # (3,3)
 
         # R_np = np.identity(3)
         # R_np = np.dot(R_np, utils.get_R(0.0, 0.3, 0.0))
