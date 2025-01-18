@@ -32,9 +32,12 @@ class FlowerPoseEstimator:
         
         self.drone_id = rospy.get_param('~drone_id', 1)
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.3)
+        self.estimate_pos = rospy.get_param('~estimate_pos', True)
+        self.estimate_att = rospy.get_param('~estimate_att', True)
+        self.pub_image = rospy.get_param('~pub_image', True)
         
         self.verbose = rospy.get_param('~verbose', False)
-        self.estimate_whole_pose = rospy.get_param('~estimate_whole_pose', False)
+        self.estimate_whole_att = rospy.get_param('~estimate_whole_att', False)
         self.use_tensorrt = rospy.get_param('~use_tensorrt', False)
         if self.use_tensorrt:
             default_yolo = os.path.join(models_dir, 'YOLOv8.engine')
@@ -100,7 +103,11 @@ class FlowerPoseEstimator:
         cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
 
         # YOLOでBBox検出
-        results = self.yolo_model.predict(cv_image, conf=self.conf_threshold, verbose=False)
+        if self.estimate_pos:
+            results = self.yolo_model.predict(cv_image, conf=self.conf_threshold, verbose=False)
+        else:
+            results = []
+
         if len(results) == 0:
             rospy.logwarn("No YOLO inference results.")
             return
@@ -119,7 +126,7 @@ class FlowerPoseEstimator:
 
         # 最大信頼度のボックスのインデックスを特定
         max_conf_index = None
-        if not self.estimate_whole_pose:
+        if not self.estimate_whole_att and self.estimate_att:
             max_conf = -1.0
             for idx, box in enumerate(boxes):
                 conf_val = float(box.conf[0].cpu().numpy())
@@ -156,7 +163,7 @@ class FlowerPoseEstimator:
             pose_msg.pos_prob = conf_
 
             # 最大信頼度のボックスに対してのみ姿勢推定を実行
-            if self.estimate_whole_pose or (not self.estimate_whole_pose and idx == max_conf_index):
+            if self.estimate_whole_att or (not self.estimate_whole_att and idx == max_conf_index):
                 z_axis_3d, euler = self.get_attitude(cropped)
                 pose_msg.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
                 pose_msg.euler = Vector3(euler[0], euler[1], euler[2])
@@ -171,15 +178,15 @@ class FlowerPoseEstimator:
         if self.verbose:
             print(f"Pose Estimation Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
 
-        # 描画処理
-        for pose in pose_array.poses:
-            self.draw_pose(cv_image, pose, height, width)
-
-        # Publish
         self.pose_pub.publish(pose_array)
-        annotated_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding='bgr8')
-        annotated_msg.header = image_msg.header
-        self.image_pub.publish(annotated_msg)
+
+        # 描画処理
+        if self.pub_image:
+            for pose in pose_array.poses:
+                self.draw_pose(cv_image, pose, height, width)
+            annotated_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding='bgr8')
+            annotated_msg.header = image_msg.header
+            self.image_pub.publish(annotated_msg)
 
         if self.verbose:
             print(f"Total Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
