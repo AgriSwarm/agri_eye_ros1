@@ -118,7 +118,7 @@ class FlowerPoseEstimator:
         # 画像をOpenCVに変換
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         # 180度回転
-        cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
+        # cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
 
         # YOLOでBBox検出
         if self.estimate_pos:
