@@ -17,7 +17,7 @@ def main():
     bridge = CvBridge()
 
     # PNG画像の読み込み (画像のパスを適宜変更してください)
-    image_path = '/home/tomoking/catkin_ws/src/agri_eye_ros1/data/sample.png'
+    image_path = '/home/initial/catkin_ws/src/agri_eye_ros1/data/sample.png'
     image_cv = cv2.imread(image_path)
 
     # 画像が正しく読み込めたか確認
