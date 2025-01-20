@@ -11,3 +11,4 @@ data_generator/
 pose_estimator/scripts/__pycache__/
 pose_estimator/scripts/backbone/__pycache__/
 models/
+datasets/
