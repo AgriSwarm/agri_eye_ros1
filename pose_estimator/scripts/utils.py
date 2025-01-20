@@ -56,46 +56,128 @@ def plot_pose_cube(img, roll, pitch, yaw, tdx=None, tdy=None, size=150.):
 
     return img
 
-
-def draw_axis(img, pitch, yaw, roll, tdx=None, tdy=None, size = 100):
-
-    # pitch = pitch * np.pi / 180
-    # yaw = -(yaw * np.pi / 180)
-    # roll = roll * np.pi / 180
-    # print(f"Roll: {roll:.2f}, Pitch: {pitch:.2f}, Yaw: {yaw:.2f}")
-    yaw = 0
-
-    if tdx != None and tdy != None:
-        tdx = tdx
-        tdy = tdy
-    else:
+def draw_axis_from_rotation_matrix(img, R, tdx=None, tdy=None, size=100):
+    """
+    回転行列から三軸を描画する関数
+    
+    Parameters:
+    img: 描画対象の画像
+    R: 3x3の回転行列
+    tdx: x座標の中心点（Noneの場合は画像の中心）
+    tdy: y座標の中心点（Noneの場合は画像の中心）
+    size: 軸の長さ
+    
+    Returns:
+    軸が描画された画像
+    """
+    
+    # 画像の中心を取得
+    if tdx is None or tdy is None:
         height, width = img.shape[:2]
-        tdx = width / 2
-        tdy = height / 2
+        tdx = width // 2
+        tdy = height // 2
 
-    # X-Axis pointing to right. drawn in red
-    x1 = size * (cos(yaw) * cos(roll)) + tdx
-    y1 = size * (cos(pitch) * sin(roll) + cos(roll) * sin(pitch) * sin(yaw)) + tdy
+    # 座標軸の方向ベクトル
+    axis = np.array([
+        [size, 0, 0],  # X軸
+        [0, size, 0],  # Y軸
+        [0, 0, size]   # Z軸
+    ])
 
-    # Y-Axis | drawn in green
-    #        v
-    x2 = size * (-cos(yaw) * sin(roll)) + tdx
-    y2 = size * (cos(pitch) * cos(roll) - sin(pitch) * sin(yaw) * sin(roll)) + tdy
+    # 回転行列を適用して2D座標に変換
+    points_2d = []
+    for p in axis:
+        # 回転を適用
+        p_rotated = R.dot(p)
+        
+        # 単純な射影（Z成分は無視）
+        x = p_rotated[0] + tdx
+        y = p_rotated[1] + tdy
+        
+        points_2d.append((int(x), int(y)))
 
-    # Z-Axis (out of the screen) drawn in blue
-    x3 = size * (sin(yaw)) + tdx
-    y3 = size * (-cos(yaw) * sin(pitch)) + tdy
-
-    # print(f"X: ({tdx:.2f}, {tdy:.2f}) -> ({x1:.2f}, {y1:.2f})")
-    # print(f"Y: ({tdx:.2f}, {tdy:.2f}) -> ({x2:.2f}, {y2:.2f})")
-    # print(f"Z: ({tdx:.2f}, {tdy:.2f}) -> ({x3:.2f}, {y3:.2f})")
-
-    cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),4)
-    cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),4)
-    cv2.line(img, (int(tdx), int(tdy)), (int(x3),int(y3)),(255,0,0),4)
+    # 軸の描画
+    # X軸 (赤)
+    cv2.line(img, (int(tdx), int(tdy)), points_2d[0], (0,0,255), 4)
+    # Y軸 (緑)
+    cv2.line(img, (int(tdx), int(tdy)), points_2d[1], (0,255,0), 4)
+    # Z軸 (青)
+    cv2.line(img, (int(tdx), int(tdy)), points_2d[2], (255,0,0), 4)
 
     return img
 
+def draw_axis(img, roll, pitch, yaw, tdx=None, tdy=None, size = 100):
+    """
+    Draw 3D axis on the image using roll, pitch, yaw angles
+    
+    Args:
+        img: Input image
+        roll: Roll angle in degrees
+        pitch: Pitch angle in degrees
+        yaw: Yaw angle in degrees
+        tdx: X-coordinate of the origin (default: image center)
+        tdy: Y-coordinate of the origin (default: image center)
+        size: Length of the axes in pixels
+    
+    Returns:
+        img: Image with drawn axes
+    """
+    
+    # If tdx and tdy are not provided, use the image center
+    if tdx is None and tdy is None:
+        height, width = img.shape[:2]
+        tdx = width / 2
+        tdy = height / 2
+    
+    # Convert degrees to radians
+    yaw = -yaw
+    
+    # X-Axis pointing to right. drawn in red
+    x1 = size * (cos(yaw) * cos(roll)) + tdx
+    y1 = size * (cos(pitch) * sin(roll) + cos(roll) * sin(pitch) * sin(yaw)) + tdy
+    
+    # Y-Axis pointing downward. drawn in green
+    x2 = size * (-cos(yaw) * sin(roll)) + tdx
+    y2 = size * (cos(pitch) * cos(roll) - sin(pitch) * sin(yaw) * sin(roll)) + tdy
+    
+    # Z-Axis (out of the screen) drawn in blue
+    x3 = size * (sin(yaw)) + tdx
+    y3 = size * (-cos(yaw) * sin(pitch)) + tdy
+    
+    # Draw axis lines
+    cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),3)
+    cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),3)
+    cv2.line(img, (int(tdx), int(tdy)), (int(x3),int(y3)),(255,0,0),2)
+    
+    return img
+
+# def draw_axis(img, roll, pitch, yaw, tdx=None, tdy=None, size = 100):
+#     # 右手系
+#     if tdx != None and tdy != None:
+#         tdx = tdx
+#         tdy = tdy
+#     else:
+#         height, width = img.shape[:2]
+#         tdx = width / 2
+#         tdy = height / 2
+
+#     # X-Axis(red)
+#     x1 = size * (cos(pitch) * cos(yaw)) + tdx
+#     y1 = size * (cos(roll) * sin(yaw) + cos(yaw) * sin(roll) * sin(pitch)) + tdy
+
+#     # Y-Axis(green)
+#     x2 = size * (-cos(pitch) * sin(yaw)) + tdx
+#     y2 = size * (cos(roll) * cos(yaw) - sin(roll) * sin(pitch) * sin(yaw)) + tdy
+
+#     # Z-Axis(blue)
+#     x3 = size * (sin(pitch)) + tdx
+#     y3 = size * (-cos(pitch) * sin(roll)) + tdy
+
+#     cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),4)
+#     cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),4)
+#     cv2.line(img, (int(tdx), int(tdy)), (int(x3),int(y3)),(255,0,0),4)
+
+#     return img
 
 def get_pose_params_from_mat(mat_path):
     # This functions gets the pose parameters from the .mat

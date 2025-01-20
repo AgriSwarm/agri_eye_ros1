@@ -71,6 +71,7 @@ catkin_install_python(PROGRAMS
 #   scripts/flower_pose_estimator.py
 #   scripts/fake_flower_pose.py
   scripts/flower_detector.py
+  scripts/flower_detector_dev.py
   scripts/image_talker.py
   DESTINATION 
   ${CATKIN_PACKAGE_BIN_DESTINATION})

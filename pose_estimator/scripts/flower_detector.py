@@ -19,6 +19,7 @@ from ultralytics import YOLO
 from torchvision import transforms
 # from module import SixDRepNetModule
 from scripts.module import SixDRepNetModule
+from scripts.module_trt import TensorRTInference
 import scripts.utils as utils
 from PIL import Image as PILImage
 
@@ -41,10 +42,10 @@ class FlowerPoseEstimator:
         self.use_tensorrt = rospy.get_param('~use_tensorrt', False)
         if self.use_tensorrt:
             default_yolo = os.path.join(models_dir, 'YOLOv8.engine')
-            default_sixd = os.path.join(models_dir, 'HPE.ckpt')
+            default_sixd = os.path.join(models_dir, 'sixdrepnet.engine')
         else:
             default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
-            default_sixd = os.path.join(models_dir, 'HPE.ckpt')
+            default_sixd = os.path.join(models_dir, 'sixdrepnet.ckpt')
 
         self.yolo_checkpoint = rospy.get_param('~yolo_checkpoint', default_yolo)
         self.sixd_checkpoint = rospy.get_param('~sixd_checkpoint', default_sixd)
@@ -56,13 +57,17 @@ class FlowerPoseEstimator:
         # self.yolo_model.export(format="engine", device="dla:0", half=True)
 
         # SixDRepNetロード
-        rospy.loginfo("Loading SixDRepNet: %s", self.sixd_checkpoint)
-        self.sixd_model = SixDRepNetModule.load_from_checkpoint(self.sixd_checkpoint)
-        self.sixd_model.eval()
+        if self.use_tensorrt:
+            rospy.loginfo("Loading SixDRepNet TensorRT engine: %s", self.sixd_checkpoint)
+            self.trt_inference = TensorRTInference(self.sixd_checkpoint)
+        else:
+            rospy.loginfo("Loading SixDRepNet: %s", self.sixd_checkpoint)
+            self.sixd_model = SixDRepNetModule.load_from_checkpoint(self.sixd_checkpoint)
+            self.sixd_model.eval()
 
         # GPU対応
         if self.use_tensorrt:
-            self.sixd_model.cuda()
+            # self.sixd_model.cuda()
             rospy.loginfo("Using TensorRT for inference.")
         elif torch.cuda.is_available():
             self.yolo_model.to('cuda')
@@ -135,6 +140,7 @@ class FlowerPoseEstimator:
                     max_conf_index = idx
 
         pose_array = EstimatedPose2DArray()
+        pose_array_rotated = EstimatedPose2DArray()
         pose_array.header = Header()
         pose_array.header.stamp = image_msg.header.stamp
         pose_array.header.frame_id = "camera_frame"
@@ -162,18 +168,32 @@ class FlowerPoseEstimator:
             pose_msg.y_2 = height - y2c
             pose_msg.pos_prob = conf_
 
+            pose_msg_rotated = EstimatedPose2D()
+            pose_msg_rotated.x_1 = x1c
+            pose_msg_rotated.y_1 = y1c
+            pose_msg_rotated.x_2 = x2c
+            pose_msg_rotated.y_2 = y2c
+            pose_msg_rotated.pos_prob = conf_
+
             # 最大信頼度のボックスに対してのみ姿勢推定を実行
             if self.estimate_whole_att or (not self.estimate_whole_att and idx == max_conf_index):
                 z_axis_3d, euler = self.get_attitude(cropped)
                 pose_msg.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
                 pose_msg.euler = Vector3(euler[0], euler[1], euler[2])
                 pose_msg.ori_prob = 1.0
+                pose_msg_rotated.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
+                pose_msg_rotated.euler = Vector3(euler[0], euler[1], euler[2])
+                pose_msg_rotated.ori_prob = 1.0
             else:
                 pose_msg.normal = Vector3(0.0, 0.0, 0.0)
                 pose_msg.euler = Vector3(0.0, 0.0, 0.0)
                 pose_msg.ori_prob = 0.0
+                pose_msg_rotated.normal = Vector3(0.0, 0.0, 0.0)
+                pose_msg_rotated.euler = Vector3(0.0, 0.0, 0.0)
+                pose_msg_rotated.ori_prob = 0.0
 
             pose_array.poses.append(pose_msg)
+            pose_array_rotated.poses.append(pose_msg_rotated)
 
         if self.verbose:
             print(f"Pose Estimation Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
@@ -182,7 +202,7 @@ class FlowerPoseEstimator:
 
         # 描画処理
         if self.pub_image:
-            for pose in pose_array.poses:
+            for pose in pose_array_rotated.poses:
                 self.draw_pose(cv_image, pose, height, width)
             annotated_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding='bgr8')
             annotated_msg.header = image_msg.header
@@ -200,12 +220,18 @@ class FlowerPoseEstimator:
         pil_img = PILImage.fromarray(pil_img)
 
         input_tensor = self.transform(pil_img).unsqueeze(0)
-        if torch.cuda.is_available():
-            input_tensor = input_tensor.cuda()
-
-        with torch.no_grad():
-            R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
-        R_np = R[0].cpu().numpy()  # (3,3)
+        
+        if self.use_tensorrt:
+            input_data = input_tensor.cpu().numpy().astype(np.float32).ravel()
+            outputs = self.trt_inference.infer(input_data)
+            R_flat = outputs[0]
+            R_np = np.array(R_flat).reshape(3, 3)
+        else:
+            if torch.cuda.is_available():
+                input_tensor = input_tensor.cuda()
+            with torch.no_grad():
+                R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
+            R_np = R[0].cpu().numpy()  # (3,3)
 
         # R_np = np.identity(3)
         # R_np = np.dot(R_np, utils.get_R(0.0, 0.3, 0.0))
@@ -218,23 +244,18 @@ class FlowerPoseEstimator:
         """
         コード3と同じ処理 + z軸ベクトルの「2D射影」をここで行う。
         """
-        # (1) rectangle: 180度回転を加味して反転
-        rotated_x1 = width - pose.x_1
-        rotated_y1 = height - pose.y_1
-        rotated_x2 = width - pose.x_2
-        rotated_y2 = height - pose.y_2
 
         # BBoxを描画
         cv2.rectangle(
             cv_image,
-            (rotated_x2, rotated_y2),
-            (rotated_x1, rotated_y1),
+            (pose.x_2, pose.y_2),
+            (pose.x_1, pose.y_1),
             self.rect_color, 3
         )
 
         # (2) center (やはり180度回転後の座標系で)
-        center_x = int((rotated_x1 + rotated_x2) / 2)
-        center_y = int((rotated_y1 + rotated_y2) / 2)
+        center_x = int((pose.x_1 + pose.x_2) / 2)
+        center_y = int((pose.y_1 + pose.y_2) / 2)
 
         # (3) 矢印の向き: 3Dベクトルを2D平面に射影
         normal_3d = np.array([pose.normal.x, pose.normal.y, pose.normal.z], dtype=float)
@@ -248,9 +269,9 @@ class FlowerPoseEstimator:
         else:
             nx, ny = 0.0, 0.0
 
-        # arrow_length = 30
-        # end_x = int(center_x - arrow_length * nx)
-        # end_y = int(center_y - arrow_length * ny)
+        arrow_length = 30
+        end_x = int(center_x + arrow_length * nx)
+        end_y = int(center_y + arrow_length * ny)
         # cv2.arrowedLine(cv_image, (center_x, center_y), (end_x, end_y),
         #                 self.arrow_color, 3, tipLength=0.3)
         
@@ -264,15 +285,15 @@ class FlowerPoseEstimator:
         thickness = 2
 
         pos_text = f'Pos: {pose.pos_prob:.2f}'
-        cv2.putText(cv_image, pos_text, (rotated_x1, rotated_y1 - 15),
+        cv2.putText(cv_image, pos_text, (pose.x_1, pose.y_1 - 15),
                     font, font_scale, (0,0,0), thickness+2)
-        cv2.putText(cv_image, pos_text, (rotated_x1, rotated_y1 - 15),
+        cv2.putText(cv_image, pos_text, (pose.x_1, pose.y_1 - 15),
                     font, font_scale, self.pos_text_color, thickness)
 
         ori_text = f'Ori: {pose.ori_prob:.2f}'
-        cv2.putText(cv_image, ori_text, (rotated_x1, rotated_y1 - 40),
+        cv2.putText(cv_image, ori_text, (pose.x_1, pose.y_1 - 40),
                     font, font_scale, (0,0,0), thickness+2)
-        cv2.putText(cv_image, ori_text, (rotated_x1, rotated_y1 - 40),
+        cv2.putText(cv_image, ori_text, (pose.x_1, pose.y_1 - 40),
                     font, font_scale, self.ori_text_color, thickness)
 
 def main():
