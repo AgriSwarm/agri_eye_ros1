@@ -40,9 +40,21 @@ class FlowerPoseEstimator:
         self.verbose = rospy.get_param('~verbose', False)
         self.estimate_whole_att = rospy.get_param('~estimate_whole_att', False)
         self.use_tensorrt = rospy.get_param('~use_tensorrt', False)
+        self.use_fp16 = rospy.get_param('~use_fp16', False)
+        self.use_int8 = rospy.get_param('~use_int8', False)
         if self.use_tensorrt:
-            default_yolo = os.path.join(models_dir, 'YOLOv8.engine')
-            default_sixd = os.path.join(models_dir, 'sixdrepnet.engine')
+            if self.use_fp16:
+                print("Using FP16 TensorRT engine.")
+                default_yolo = os.path.join(models_dir, 'YOLOv8_fp16.engine')
+                default_sixd = os.path.join(models_dir, 'sixdrepnet_fp16.engine')
+            elif self.use_int8:
+                print("Using INT8 TensorRT engine.")
+                default_yolo = os.path.join(models_dir, 'YOLOv8_int8.engine')
+                default_sixd = os.path.join(models_dir, 'sixdrepnet_int8.engine')
+            else:
+                print("Using FP32 TensorRT engine.")
+                default_yolo = os.path.join(models_dir, 'YOLOv8_fp32.engine')
+                default_sixd = os.path.join(models_dir, 'sixdrepnet_fp32.engine')
         else:
             default_yolo = os.path.join(models_dir, 'YOLOv8.pt')
             default_sixd = os.path.join(models_dir, 'sixdrepnet.ckpt')
@@ -101,6 +113,7 @@ class FlowerPoseEstimator:
         rospy.loginfo("FlowerPoseEstimator initialized.")
 
     def callback(self, image_msg):
+        tick_time = rospy.Time.now()
         start_time = rospy.Time.now()
         # 画像をOpenCVに変換
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
@@ -118,7 +131,7 @@ class FlowerPoseEstimator:
             return
 
         if self.verbose:
-            print(f"YOLO Inference Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
+            print(f"YOLO Inference Time(ms): {(rospy.Time.now() - tick_time).to_sec() * 1000:.2f}")
 
         result = results[0]
         boxes = result.boxes
@@ -144,8 +157,9 @@ class FlowerPoseEstimator:
         pose_array.header = Header()
         pose_array.header.stamp = image_msg.header.stamp
         pose_array.header.frame_id = "camera_frame"
-
+        
         for idx, box in enumerate(boxes):
+            tick_time = rospy.Time.now()
             xyxy = box.xyxy[0].cpu().numpy()  # (x1, y1, x2, y2)
             conf_ = float(box.conf[0].cpu().numpy())
             x1, y1, x2, y2 = map(int, xyxy)
@@ -195,8 +209,8 @@ class FlowerPoseEstimator:
             pose_array.poses.append(pose_msg)
             pose_array_rotated.poses.append(pose_msg_rotated)
 
-        if self.verbose:
-            print(f"Pose Estimation Time(ms): {(rospy.Time.now() - start_time).to_sec() * 1000:.2f}")
+            if self.verbose:
+                print(f"Pose Estimation Time(ms): {(rospy.Time.now() - tick_time).to_sec() * 1000:.2f}")
 
         self.pose_pub.publish(pose_array)
 

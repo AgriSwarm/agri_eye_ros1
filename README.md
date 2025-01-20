@@ -1,27 +1,27 @@
 # Agri Eye ROS1
 
-> [!IMPORTANT]
-> You need [agri_resources](https://github.com/AgriSwarm/agri_resources) and [VINS-Mono](https://github.com/libing64/VINS-Mono/tree/noetic-devel)
+### TensorRT Optimization for YOLOv8
 
-## VTX test
+
 ```bash
-roslaunch local_sensing vtx_demo.launch
+python trt_tools/gen_yolo_engine.py --precision fp32 # or fp16, int8
 ```
 
-## VIO test
-```bash
-roslaunch local_sensing vins_estimate.launch
-```
+### TensorRT Optimization for 6DRepNet
 
-## with Crazyswarm2
+pytorch to onnx
 ```bash
-# terminal 1
-source /opt/ros/noetic/setup.bash
-source /opt/ros/galactic/setup.bash
-source ros1_bridge_ws/install/setup.bash
-export ROS_MASTER_URI=http://localhost:11311
-ros2 run ros1_bridge dynamic_bridge
-# terminal 2
-ros2 launch crazyflie launch.py backend:=cflib
+python trt_tools/gen_sixedrepnet_onnx.py
 ```
-
+onnx to tensorrt engine
+```bash
+/usr/src/tensorrt/bin/trtexec --onnx=sixdrepnet.onnx --saveEngine=sixdrepnet_fp32.engine
+```
+fp16
+```bash
+/usr/src/tensorrt/bin/trtexec --onnx=sixdrepnet.onnx --saveEngine=sixdrepnet_fp16.engine --fp16
+```
+int8
+```bash
+/usr/src/tensorrt/bin/trtexec --onnx=sixdrepnet.onnx --saveEngine=sixdrepnet_int8.engine --int8
+```

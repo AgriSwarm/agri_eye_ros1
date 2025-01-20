@@ -2,7 +2,7 @@ import torch
 from scripts.module import SixDRepNetModule
 
 # モデルのロード
-checkpoint_path = '/home/tomoking/catkin_ws/src/agri_eye_ros1/models/HPE.ckpt'  # 適宜パスを変更してください
+checkpoint_path = '/home/tomoking/catkin_ws/src/agri_eye_ros1/models/sixdrepnet.ckpt'  # 適宜パスを変更してください
 model = SixDRepNetModule.load_from_checkpoint(checkpoint_path)
 model.eval().cuda()
 
@@ -23,7 +23,6 @@ torch.onnx.export(
     output_names=['output'],
     dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
 )
-
 
 print(f"ONNXモデルをエクスポートしました: {onnx_model_path}")
 
