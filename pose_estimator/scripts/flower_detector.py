@@ -193,7 +193,7 @@ class FlowerPoseEstimator:
             # 最大信頼度のボックスに対してのみ姿勢推定を実行
             if self.estimate_whole_att or (not self.estimate_whole_att and idx == max_conf_index):
                 z_axis_3d, euler = self.get_attitude(cropped)
-                print(f"Z-axis: {z_axis_3d}, Euler: {euler}")
+                # print(f"Z-axis: {z_axis_3d}, Euler: {euler}")
                 pose_msg.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
                 pose_msg.euler = Vector3(euler[0], euler[1], euler[2])
                 pose_msg.ori_prob = 1.0

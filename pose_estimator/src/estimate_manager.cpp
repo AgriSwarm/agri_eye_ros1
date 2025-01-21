@@ -150,7 +150,7 @@ namespace pose_estimator
                                               const nav_msgs::Odometry::ConstPtr &odom_msg,
                                               const boost::shared_ptr<agri_eye_msgs::EstimatedPose2DArray const> flower_poses_msg)
   {
-    // ROS_INFO("depthOdomPoseCallback");
+    ROS_INFO("depthOdomPoseCallback");
     if (flower_poses_msg->poses.size() == 0)
     {
       return;
@@ -245,6 +245,7 @@ namespace pose_estimator
   void EstimateManager::depthPoseCallback(const sensor_msgs::Image::ConstPtr &depth_msg,
                                           const boost::shared_ptr<agri_eye_msgs::EstimatedPose2DArray const> flower_poses_msg)
   {
+    ROS_INFO("depthPoseCallback");
     if (flower_poses_msg->poses.size() == 0)
     {
       return;

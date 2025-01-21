@@ -29,11 +29,11 @@
         <param name="estimate_pos" type="bool" value="true" />
         <param name="estimate_att" type="bool" value="true" />
         <param name="estimate_whole_att" type="bool" value="true" />
-        <param name="use_tensorrt" type="bool" value="false" />
-        <param name="use_fp16" type="bool" value="true" />
-        <param name="use_int8" type="bool" value="false" />
+        <param name="use_tensorrt" type="bool" value="true" />
+        <param name="use_fp16" type="bool" value="false" />
+        <param name="use_int8" type="bool" value="true" />
         <param name="pub_image" type="bool" value="true" />
-        <param name="verbose" type="bool" value="true" />
+        <param name="verbose" type="bool" value="false" />
         <remap from="flower_poses" to="pose_estimator/flower_poses"/>
     </node>
 </launch>
