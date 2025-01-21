@@ -22,6 +22,7 @@ from scripts.module import SixDRepNetModule
 from scripts.module_trt import TensorRTInference
 import scripts.utils as utils
 from PIL import Image as PILImage
+from scipy.spatial.transform import Rotation
 
 class FlowerPoseEstimator:
     def __init__(self):
@@ -192,6 +193,7 @@ class FlowerPoseEstimator:
             # 最大信頼度のボックスに対してのみ姿勢推定を実行
             if self.estimate_whole_att or (not self.estimate_whole_att and idx == max_conf_index):
                 z_axis_3d, euler = self.get_attitude(cropped)
+                print(f"Z-axis: {z_axis_3d}, Euler: {euler}")
                 pose_msg.normal = Vector3(z_axis_3d[0], z_axis_3d[1], z_axis_3d[2])
                 pose_msg.euler = Vector3(euler[0], euler[1], euler[2])
                 pose_msg.ori_prob = 1.0
@@ -248,10 +250,12 @@ class FlowerPoseEstimator:
             R_np = R[0].cpu().numpy()  # (3,3)
 
         # R_np = np.identity(3)
-        # R_np = np.dot(R_np, utils.get_R(0.0, 0.3, 0.0))
+        # R_np = np.dot(R_np, utils.get_R(1.0, 0.0, 0.0))
 
-        z_axis = R_np[:, 2]  # (x, y, z)
-        euler = cv2.Rodrigues(R_np)[0].flatten()  # (roll, pitch, yaw)
+        r = Rotation.from_matrix(R_np)
+        euler = r.as_euler("xyz", degrees=True)
+        z_axis = r.apply([0, 0, 1])
+
         return z_axis, euler
 
     def draw_pose(self, cv_image, pose, height, width):
@@ -275,23 +279,15 @@ class FlowerPoseEstimator:
         normal_3d = np.array([pose.normal.x, pose.normal.y, pose.normal.z], dtype=float)
         nx, ny = normal_3d[0], normal_3d[1]
 
-        # 正規化して矢印の長さを一定に
-        norm_xy = math.sqrt(nx*nx + ny*ny)
-        if norm_xy > 1e-6:
-            nx /= norm_xy
-            ny /= norm_xy
-        else:
-            nx, ny = 0.0, 0.0
-
-        arrow_length = 30
-        end_x = int(center_x + arrow_length * nx)
+        arrow_length = 60
+        end_x = int(center_x - arrow_length * nx)
         end_y = int(center_y + arrow_length * ny)
-        # cv2.arrowedLine(cv_image, (center_x, center_y), (end_x, end_y),
-        #                 self.arrow_color, 3, tipLength=0.3)
+        cv2.arrowedLine(cv_image, (center_x, center_y), (end_x, end_y),
+                        self.arrow_color, 3, tipLength=0.3)
         
         # print(f"Euler: {pose.euler.x:.2f}, {pose.euler.y:.2f}, {pose.euler.z:.2f}")
         if pose.ori_prob != 0.0:
-            cv_image = utils.draw_axis(cv_image, pose.euler.x, pose.euler.y, pose.euler.z, center_x, center_y)
+            cv_image = utils.draw_axis(cv_image, pose.euler.x, pose.euler.y, pose.euler.z, center_x, center_y, 30)
 
         # (4) Probabilityテキスト
         font = cv2.FONT_HERSHEY_SIMPLEX

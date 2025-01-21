@@ -7,6 +7,7 @@ import torch
 #from torch.utils.serialization import load_lua
 import scipy.io as sio
 import cv2
+from scipy.spatial.transform import Rotation
 
 
 def plot_pose_cube(img, roll, pitch, yaw, tdx=None, tdy=None, size=150.):
@@ -106,78 +107,176 @@ def draw_axis_from_rotation_matrix(img, R, tdx=None, tdy=None, size=100):
 
     return img
 
-def draw_axis(img, roll, pitch, yaw, tdx=None, tdy=None, size = 100):
+def draw_axis(img, pitch, yaw, roll, tdx=None, tdy=None, size=100):
     """
-    Draw 3D axis on the image using roll, pitch, yaw angles
-    
-    Args:
-        img: Input image
-        roll: Roll angle in degrees
-        pitch: Pitch angle in degrees
-        yaw: Yaw angle in degrees
-        tdx: X-coordinate of the origin (default: image center)
-        tdy: Y-coordinate of the origin (default: image center)
-        size: Length of the axes in pixels
-    
-    Returns:
-        img: Image with drawn axes
+    左手系, ワールド座標系における回転行列から三軸を描画する関数
     """
-    
-    # If tdx and tdy are not provided, use the image center
-    if tdx is None and tdy is None:
-        height, width = img.shape[:2]
-        tdx = width / 2
-        tdy = height / 2
-    
-    # Convert degrees to radians
-    yaw = -yaw
-    
-    # X-Axis pointing to right. drawn in red
-    x1 = size * (cos(yaw) * cos(roll)) + tdx
-    y1 = size * (cos(pitch) * sin(roll) + cos(roll) * sin(pitch) * sin(yaw)) + tdy
-    
-    # Y-Axis pointing downward. drawn in green
-    x2 = size * (-cos(yaw) * sin(roll)) + tdx
-    y2 = size * (cos(pitch) * cos(roll) - sin(pitch) * sin(yaw) * sin(roll)) + tdy
-    
-    # Z-Axis (out of the screen) drawn in blue
-    x3 = size * (sin(yaw)) + tdx
-    y3 = size * (-cos(yaw) * sin(pitch)) + tdy
-    
-    # Draw axis lines
-    cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),3)
-    cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),3)
-    cv2.line(img, (int(tdx), int(tdy)), (int(x3),int(y3)),(255,0,0),2)
-    
+    r = Rotation.from_euler("xyz", [pitch, yaw, roll], degrees=True)
+    R = r.as_matrix()
+
+    # print(f"draw_axis R: {R}")
+    x_axis_3d = np.array([ size,   0.0,   0.0])
+    y_axis_3d = np.array([  0.0,  size,   0.0])
+    z_axis_3d = np.array([  0.0,   0.0,  size])
+    x_rot = R @ x_axis_3d
+    y_rot = R @ y_axis_3d
+    z_rot = R @ z_axis_3d
+
+    if tdx is None:
+        tdx = img.shape[1] / 2.0
+    if tdy is None:
+        tdy = img.shape[0] / 2.0
+
+    x_x = int(tdx - x_rot[0])
+    x_y = int(tdy + x_rot[1])
+    y_x = int(tdx - y_rot[0])
+    y_y = int(tdy + y_rot[1])
+    z_x = int(tdx - z_rot[0])
+    z_y = int(tdy + z_rot[1])
+    cx = int(tdx)
+    cy = int(tdy)
+    cv2.line(img, (cx, cy), (x_x, x_y), (0, 0, 255), 2)
+    cv2.line(img, (cx, cy), (y_x, y_y), (0, 255, 0), 2)
+    cv2.line(img, (cx, cy), (z_x, z_y), (255, 0, 0), 2)
+
     return img
 
-# def draw_axis(img, roll, pitch, yaw, tdx=None, tdy=None, size = 100):
-#     # 右手系
-#     if tdx != None and tdy != None:
-#         tdx = tdx
-#         tdy = tdy
-#     else:
-#         height, width = img.shape[:2]
-#         tdx = width / 2
-#         tdy = height / 2
+def draw_axis_from_R(img, R, tdx=None, tdy=None, size=100):
+    """
+    回転行列から三軸を描画する関数
+    
+    Parameters:
+    img: 描画対象の画像
+    R: 3x3の回転行列
+    tdx: x座標の中心点（Noneの場合は画像の中心）
+    tdy: y座標の中心点（Noneの場合は画像の中心）
+    size: 軸の長さ
+    
+    Returns:
+    軸が描画された画像
+    """
 
-#     # X-Axis(red)
-#     x1 = size * (cos(pitch) * cos(yaw)) + tdx
-#     y1 = size * (cos(roll) * sin(yaw) + cos(yaw) * sin(roll) * sin(pitch)) + tdy
+    x_axis_3d = np.array([ size,   0.0,   0.0])
+    y_axis_3d = np.array([  0.0,  size,   0.0])
+    z_axis_3d = np.array([  0.0,   0.0,  size])
+    x_rot = R @ x_axis_3d
+    y_rot = R @ y_axis_3d
+    z_rot = R @ z_axis_3d
 
-#     # Y-Axis(green)
-#     x2 = size * (-cos(pitch) * sin(yaw)) + tdx
-#     y2 = size * (cos(roll) * cos(yaw) - sin(roll) * sin(pitch) * sin(yaw)) + tdy
+    if tdx is None:
+        tdx = img.shape[1] / 2.0
+    if tdy is None:
+        tdy = img.shape[0] / 2.0
 
-#     # Z-Axis(blue)
-#     x3 = size * (sin(pitch)) + tdx
-#     y3 = size * (-cos(pitch) * sin(roll)) + tdy
+    x_x = int(tdx - x_rot[0])
+    x_y = int(tdy + x_rot[1])
+    y_x = int(tdx - y_rot[0])
+    y_y = int(tdy + y_rot[1])
+    z_x = int(tdx - z_rot[0])
+    z_y = int(tdy + z_rot[1])
+    cx = int(tdx)
+    cy = int(tdy)
+    cv2.line(img, (cx, cy), (x_x, x_y), (0, 0, 255), 2)
+    cv2.line(img, (cx, cy), (y_x, y_y), (0, 255, 0), 2)
+    cv2.line(img, (cx, cy), (z_x, z_y), (255, 0, 0), 2)
 
-#     cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),4)
-#     cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),4)
-#     cv2.line(img, (int(tdx), int(tdy)), (int(x3),int(y3)),(255,0,0),4)
+    return img
 
-#     return img
+def get_R(pitch, yaw, roll):
+    # roll  = np.deg2rad(roll)
+    # pitch = np.deg2rad(pitch)
+    # yaw   = np.deg2rad(yaw)
+    Rx = np.array([
+        [1,              0,              0],
+        [0,  np.cos(pitch), -np.sin(pitch)],
+        [0,  np.sin(pitch),  np.cos(pitch)]
+    ], dtype=np.float32)
+    Ry = np.array([
+        [ np.cos(yaw), 0, np.sin(yaw)],
+        [           0, 1,           0],
+        [-np.sin(yaw), 0, np.cos(yaw)]
+    ], dtype=np.float32)
+    Rz = np.array([
+        [ np.cos(roll), -np.sin(roll), 0],
+        [ np.sin(roll),  np.cos(roll), 0],
+        [            0,             0, 1]
+    ], dtype=np.float32)
+
+    R = Rz @ Ry @ Rx
+    return R
+
+def get_R_legacy(pitch, yaw, roll):
+    cp, sp = math.cos(pitch), math.sin(pitch)
+    cy, sy = math.cos(yaw), math.sin(yaw)
+    cr, sr = math.cos(roll), math.sin(roll)
+    Rx = [[1, 0, 0], [0, cp, -sp], [0, sp, cp]]
+    Ry = [[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]]
+    Rz = [[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]]
+
+    def matmul(A, B):
+        return [[sum(a*b for a, b in zip(A_row, B_col)) for B_col in zip(*B)] for A_row in A]
+
+    R = matmul(Rz, matmul(Ry, Rx))
+    return R
+
+def get_euler(R):
+    """
+    単一の3x3回転行列 R から [x, y, z] の3つのオイラー角を返す関数
+    Z-Y-X の順番(あるいは X-Y-Z 等)で回転している想定であれば、
+    計算に応じて適切に置き換えてください。
+    """
+
+    # R[0,0]^2 + R[1,0]^2 の平方根
+    sy = np.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+    
+    # シンギュラリティ判定
+    singular = (sy < 1e-6)
+
+    if not singular:
+        # 通常ケース
+        x = np.arctan2(R[2, 1], R[2, 2])   # roll
+        y = np.arctan2(-R[2, 0], sy)       # pitch
+        z = np.arctan2(R[1, 0], R[0, 0])   # yaw
+    else:
+        # 特異姿勢（gimbal lock）場合の近似
+        x = np.arctan2(-R[1, 2], R[1, 1])
+        y = np.arctan2(-R[2, 0], sy)
+        z = 0.0
+
+    # ラジアンから度に変換
+    x = np.rad2deg(x)
+    y = np.rad2deg(y)
+    z = np.rad2deg(z)
+
+    return np.array([x, y, z])
+
+
+def compute_euler_angles_from_rotation_matrix(R):
+    """
+    単一の3x3回転行列 R から [x, y, z] の3つのオイラー角を返す関数
+    Z-Y-X の順番(あるいは X-Y-Z 等)で回転している想定であれば、
+    計算に応じて適切に置き換えてください。
+    """
+
+    # R[0,0]^2 + R[1,0]^2 の平方根
+    sy = np.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+    
+    # シンギュラリティ判定
+    singular = (sy < 1e-6)
+
+    if not singular:
+        # 通常ケース
+        x = np.arctan2(R[2, 1], R[2, 2])   # roll
+        y = np.arctan2(-R[2, 0], sy)       # pitch
+        z = np.arctan2(R[1, 0], R[0, 0])   # yaw
+    else:
+        # 特異姿勢（gimbal lock）場合の近似
+        x = np.arctan2(-R[1, 2], R[1, 1])
+        y = np.arctan2(-R[2, 0], sy)
+        z = 0.0
+
+    return np.array([x, y, z])
+
 
 def get_pose_params_from_mat(mat_path):
     # This functions gets the pose parameters from the .mat

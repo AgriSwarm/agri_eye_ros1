@@ -22,12 +22,16 @@ namespace pose_estimator
     nh_.param("est_detect_pose_rate", est_detect_pose_rate_, 10.0);
 
     cv::FileStorage general_fs;
+
+    ROS_INFO("Loading config file: %s", config_file.c_str());
     general_fs.open(config_file.c_str(), cv::FileStorage::READ);
     int pn = config_file.find_last_of('/');
     std::string configPath = config_file.substr(0, pn);
 
     std::string camera_calib_path = (std::string) general_fs["color_cam_calib"];
     camera_calib_path = configPath + "/" + camera_calib_path;
+
+    ROS_INFO("Loading camera model: %s", camera_calib_path.c_str());
     auto camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(camera_calib_path.c_str());
     m_camera = boost::dynamic_pointer_cast<camodocal::PinholeCamera>(camera);
     if(m_camera == nullptr)
@@ -181,6 +185,10 @@ namespace pose_estimator
       FlowerPose flower_pose;
       Eigen::Vector3d point, normal;
       point = LiftProjective(Eigen::Vector4d(pose.x_1, pose.y_1, pose.x_2, pose.y_2), cv_ptr);
+      if (point.norm() < 0.01)
+      {
+        continue;
+      }
       normal << pose.normal.x, pose.normal.y, pose.normal.z;
       
       flower_pose.position = cam_R * point + cam_t;
