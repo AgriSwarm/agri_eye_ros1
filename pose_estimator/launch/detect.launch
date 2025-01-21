@@ -3,15 +3,14 @@
     <arg name="config_path" default="$(find agri_resources)/config/drones/duckey/orin_nx_distrib.yaml" />
     <arg name="depth_scaling_factor" default="0.001" />
     <arg name="inverse_depth" default="false" />
-    <arg name="camera_coordinate" default="true" />
+    <arg name="camera_coordinate" default="false" />
     <arg name="identity_threshold" default="0.1" />
     <arg name="tracking_distance" default="0.3" />
     <arg name="lost_time_threshold" default="3.0" />
     <arg name="world_frame_id" default="camera_color_frame" />
     <arg name="drone_id" default="0" />
-    <arg name="rviz" default="true" />
 
-    <!-- <node name="estimate_manager" pkg="pose_estimator" type="pose_estimator" output="screen">
+    <node name="estimate_manager" pkg="pose_estimator" type="pose_estimator" output="screen">
         <param name="config_file" type="string" value="$(arg config_path)" />
         <param name="depth_scaling_factor" type="double" value="$(arg depth_scaling_factor)" />
         <param name="inverse_depth" type="bool" value="$(arg inverse_depth)" />
@@ -22,7 +21,7 @@
         <param name="world_frame_id" type="string" value="$(arg world_frame_id)" />
         <remap from="depth" to="/camera/aligned_depth_to_color/image_raw" />
         <remap from="flower_poses" to="pose_estimator/flower_poses"/>
-    </node> -->
+    </node>
 
     <node name="flower_detector" pkg="pose_estimator" type="flower_detector.py" output="screen">
         <param name="drone_id" type="int" value="$(arg drone_id)" />
@@ -35,5 +34,6 @@
         <param name="use_int8" type="bool" value="false" />
         <param name="pub_image" type="bool" value="true" />
         <param name="verbose" type="bool" value="true" />
+        <remap from="flower_poses" to="pose_estimator/flower_poses"/>
     </node>
 </launch>
