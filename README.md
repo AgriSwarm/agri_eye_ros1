@@ -4,14 +4,14 @@
 
 
 ```bash
-python trt_tools/gen_yolo_engine.py --precision fp32 # or fp16, int8
+python3 trt_tools/gen_yolo_engine.py --precision fp32 # or fp16, int8
 ```
 
 ### TensorRT Optimization for 6DRepNet
 
 pytorch to onnx
 ```bash
-python trt_tools/gen_sixedrepnet_onnx.py
+python3 trt_tools/gen_sixedrepnet_onnx.py
 ```
 onnx to tensorrt engine
 ```bash

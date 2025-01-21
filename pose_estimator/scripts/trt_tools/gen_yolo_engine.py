@@ -7,7 +7,7 @@ def main():
         '--precision',
         type=str,
         default='fp16',
-        choices=['fp16', 'int', 'fp32'],
+        choices=['fp16', 'int8', 'fp32'],
         help='エクスポートするモデルの精度タイプ。fp16 または int を指定。'
     )
     args = parser.parse_args()
@@ -29,7 +29,7 @@ def main():
         export_kwargs["half"] = True
         export_kwargs["int8"] = False
         print("FP16精度でエクスポートします。")
-    elif args.precision == 'int':
+    elif args.precision == 'int8':
         export_kwargs["half"] = False
         export_kwargs["int8"] = True
         print("INT8精度でエクスポートします。")
