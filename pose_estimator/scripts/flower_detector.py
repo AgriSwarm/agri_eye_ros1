@@ -89,8 +89,8 @@ class FlowerPoseEstimator:
             rospy.logwarn("CUDA not available. Using CPU.")
 
         # Publisher
-        self.pose_pub = rospy.Publisher('~flower_poses', EstimatedPose2DArray, queue_size=10)
-        self.image_pub = rospy.Publisher('~annotated_image', Image, queue_size=10)
+        self.pose_pub = rospy.Publisher('/flower_poses', EstimatedPose2DArray, queue_size=10)
+        self.image_pub = rospy.Publisher('/annotated_image', Image, queue_size=10)
         # Subscriber
         self.image_sub = rospy.Subscriber('camera/color/image_raw', Image, self.callback)
 
