@@ -178,12 +178,6 @@ namespace pose_estimator
     Eigen::Matrix3d cam_R = cam_T.block<3, 3>(0, 0);
     Eigen::Vector3d cam_t = cam_T.block<3, 1>(0, 3);
 
-    ROS_INFO("[pose_estimator]cam_T = \n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f",
-             cam_T(0, 0), cam_T(0, 1), cam_T(0, 2), cam_T(0, 3),
-             cam_T(1, 0), cam_T(1, 1), cam_T(1, 2), cam_T(1, 3),
-             cam_T(2, 0), cam_T(2, 1), cam_T(2, 2), cam_T(2, 3),
-             cam_T(3, 0), cam_T(3, 1), cam_T(3, 2), cam_T(3, 3));
-
     flower_poses_.clear();
 
     for (auto &pose : flower_poses_msg->poses)
@@ -191,8 +185,6 @@ namespace pose_estimator
       FlowerPose flower_pose;
       Eigen::Vector3d point, normal;
       point = LiftProjective(Eigen::Vector4d(pose.x_1, pose.y_1, pose.x_2, pose.y_2), cv_ptr);
-      ROS_INFO("[pose_estimator]point2d = %f, %f, %f, %f", pose.x_1, pose.y_1, pose.x_2, pose.y_2);
-      ROS_INFO("[pose_estimator]point3d = %f, %f, %f", point(0), point(1), point(2));
       if (point.norm() < 0.01)
       {
         continue;
@@ -201,8 +193,6 @@ namespace pose_estimator
       
       flower_pose.position = cam_R * point + cam_t;
       flower_pose.normal = cam_R * normal;
-
-      ROS_INFO("[pose_estimator]flower_pose.position = %f, %f, %f", flower_pose.position(0), flower_pose.position(1), flower_pose.position(2));
 
       // flower_pose.probability = pose.probability;
       flower_pose.pos_prob = pose.pos_prob;
