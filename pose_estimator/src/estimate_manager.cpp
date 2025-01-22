@@ -191,6 +191,8 @@ namespace pose_estimator
       FlowerPose flower_pose;
       Eigen::Vector3d point, normal;
       point = LiftProjective(Eigen::Vector4d(pose.x_1, pose.y_1, pose.x_2, pose.y_2), cv_ptr);
+      ROS_INFO("[pose_estimator]point2d = %f, %f, %f, %f", pose.x_1, pose.y_1, pose.x_2, pose.y_2);
+      ROS_INFO("[pose_estimator]point3d = %f, %f, %f", point(0), point(1), point(2));
       if (point.norm() < 0.01)
       {
         continue;
