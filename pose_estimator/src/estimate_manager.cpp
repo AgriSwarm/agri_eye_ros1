@@ -178,6 +178,12 @@ namespace pose_estimator
     Eigen::Matrix3d cam_R = cam_T.block<3, 3>(0, 0);
     Eigen::Vector3d cam_t = cam_T.block<3, 1>(0, 3);
 
+    ROS_INFO("[pose_estimator]cam_T = \n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f",
+             cam_T(0, 0), cam_T(0, 1), cam_T(0, 2), cam_T(0, 3),
+             cam_T(1, 0), cam_T(1, 1), cam_T(1, 2), cam_T(1, 3),
+             cam_T(2, 0), cam_T(2, 1), cam_T(2, 2), cam_T(2, 3),
+             cam_T(3, 0), cam_T(3, 1), cam_T(3, 2), cam_T(3, 3));
+
     flower_poses_.clear();
 
     for (auto &pose : flower_poses_msg->poses)
