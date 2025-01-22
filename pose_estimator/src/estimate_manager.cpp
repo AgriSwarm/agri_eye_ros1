@@ -201,6 +201,9 @@ namespace pose_estimator
       
       flower_pose.position = cam_R * point + cam_t;
       flower_pose.normal = cam_R * normal;
+
+      ROS_INFO("[pose_estimator]flower_pose.position = %f, %f, %f", flower_pose.position(0), flower_pose.position(1), flower_pose.position(2));
+
       // flower_pose.probability = pose.probability;
       flower_pose.pos_prob = pose.pos_prob;
       flower_pose.ori_prob = pose.ori_prob;
