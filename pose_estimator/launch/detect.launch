@@ -22,6 +22,7 @@
         <remap from="depth" to="/camera/aligned_depth_to_color/image_raw" />
         <remap from="flower_poses" to="pose_estimator/flower_poses"/>
         <remap from="odom" to="/d2vins/odometry" />
+        <remap from="target_flower_pose" to="/traj_server/planning/track_pose" />
     </node>
 
     <node name="flower_detector" pkg="pose_estimator" type="flower_detector.py" output="screen">
