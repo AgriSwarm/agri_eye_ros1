@@ -249,8 +249,8 @@ class FlowerPoseEstimator:
                 R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
             R_np = R[0].cpu().numpy()  # (3,3)
 
-        # R_np = np.identity(3)
-        # R_np = np.dot(R_np, utils.get_R(1.0, 0.0, 0.0))
+        R_np = np.identity(3)
+        R_np = np.dot(R_np, utils.get_R(3.141592653589793, 0, 0))
 
         r = Rotation.from_matrix(R_np)
         euler = r.as_euler("xyz", degrees=True)
