@@ -220,8 +220,10 @@ class FlowerPoseEstimator:
                 pose_msg_rotated.euler = Vector3(euler[0], euler[1], euler[2])
                 pose_msg_rotated.ori_prob = 1.0
             else:
-                pose_msg.normal = Vector3(0.0, 0.0, 0.0)
-                pose_msg.euler = Vector3(0.0, 0.0, 0.0)
+                # pose_msg.normal = Vector3(0.0, 0.0, 0.0)
+                # pose_msg.euler = Vector3(0.0, 0.0, 0.0)
+                pose_msg.normal = Vector3(0.0, 0.0, 1.0)
+                pose_msg.euler = Vector3(3.141592653589793, 0.0, 0.0)
                 pose_msg.ori_prob = 0.0
                 pose_msg_rotated.normal = Vector3(0.0, 0.0, 0.0)
                 pose_msg_rotated.euler = Vector3(0.0, 0.0, 0.0)

@@ -419,8 +419,8 @@ namespace pose_estimator
       marker.pose.orientation.w = q.w();
 
       marker.scale.x = 0.2;
-      marker.scale.y = 0.1;
-      marker.scale.z = 0.1;
+      marker.scale.y = 0.05;
+      marker.scale.z = 0.05;
       marker.lifetime = ros::Duration(0.1);
       // marker.color.a = flower_poses[i].probability;
       marker.color.a = 1.0;
