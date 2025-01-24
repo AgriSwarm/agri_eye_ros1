@@ -28,6 +28,8 @@ class FlowerPoseEstimator:
     def __init__(self):
         rospy.init_node('flower_detector', anonymous=True)
 
+        self.last_inference_time = rospy.Time.now()
+
         # パラメータ取得
         script_dir = os.path.dirname(os.path.abspath(__file__))
         models_dir = os.path.join(script_dir, '..', '..', 'models')
@@ -37,17 +39,24 @@ class FlowerPoseEstimator:
         self.estimate_pos = rospy.get_param('~estimate_pos', True)
         self.estimate_att = rospy.get_param('~estimate_att', True)
         self.pub_image = rospy.get_param('~pub_image', True)
+        self.inference_freq = rospy.get_param('~inference_freq', 10)
         
         self.verbose = rospy.get_param('~verbose', False)
         self.estimate_whole_att = rospy.get_param('~estimate_whole_att', False)
         self.use_tensorrt = rospy.get_param('~use_tensorrt', False)
         self.use_fp16 = rospy.get_param('~use_fp16', False)
+        self.use_fp16_dla = rospy.get_param('~use_fp16_dla', False)
         self.use_int8 = rospy.get_param('~use_int8', False)
         if self.use_tensorrt:
             if self.use_fp16:
                 print("Using FP16 TensorRT engine.")
                 default_yolo = os.path.join(models_dir, 'YOLOv8_fp16.engine')
                 default_sixd = os.path.join(models_dir, 'sixdrepnet_fp16.engine')
+            elif self.use_fp16_dla:
+                print("Using FP16 DLA TensorRT engine.")
+                default_yolo = os.path.join(models_dir, 'YOLOv8_fp16_dla.engine')
+                # default_sixd = os.path.join(models_dir, 'sixdrepnet_fp16_dla.engine')  
+                default_sixd = os.path.join(models_dir, 'sixdrepnet_fp16.engine')                                              
             elif self.use_int8:
                 print("Using INT8 TensorRT engine.")
                 default_yolo = os.path.join(models_dir, 'YOLOv8_int8.engine')
@@ -114,6 +123,12 @@ class FlowerPoseEstimator:
         rospy.loginfo("FlowerPoseEstimator initialized.")
 
     def callback(self, image_msg):
+        current_time = rospy.Time.now()
+        elapsed_time = (current_time - self.last_inference_time).to_sec()
+        if elapsed_time < 1.0 / self.inference_freq:
+            return
+        self.last_inference_time = current_time
+
         tick_time = rospy.Time.now()
         start_time = rospy.Time.now()
         # 画像をOpenCVに変換

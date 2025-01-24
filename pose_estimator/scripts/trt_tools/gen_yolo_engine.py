@@ -10,6 +10,11 @@ def main():
         choices=['fp16', 'int8', 'fp32'],
         help='エクスポートするモデルの精度タイプ。fp16 または int を指定。'
     )
+    parser.add_argument(
+        '--dla',
+        action='store_true',
+        help='DLAモジュールを使用する場合に指定。'
+    )
     args = parser.parse_args()
 
     # モデルのチェックポイントパスを指定
@@ -35,6 +40,11 @@ def main():
         print("INT8精度でエクスポートします。")
     else:
         print("精度指定が不正です。")
+
+    # DLAモジュールを使用する場合
+    if args.dla:
+        export_kwargs["device"] = "dla:0"
+        print("DLAモジュールを使用してエクスポートします。")
 
     # モデルをエクスポート
     yolo_model.export(**export_kwargs)
