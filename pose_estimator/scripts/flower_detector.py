@@ -139,6 +139,8 @@ class FlowerPoseEstimator:
 
         if len(boxes) == 0:
             rospy.logwarn("No boxes detected.")
+            if self.pub_image:
+                self.image_pub.publish(image_msg)
             return
 
         height, width = cv_image.shape[:2]
