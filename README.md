@@ -4,7 +4,7 @@
 
 
 ```bash
-python3 trt_tools/gen_yolo_engine.py --precision fp32 # or fp16, int8
+python3 trt_tools/gen_yolo_engine.py --precision fp32 --dla # or fp16, int8
 ```
 
 ### TensorRT Optimization for 6DRepNet

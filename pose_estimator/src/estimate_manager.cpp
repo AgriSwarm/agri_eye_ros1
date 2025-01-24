@@ -75,7 +75,8 @@ namespace pose_estimator
       sync_image_odom_pose_->registerCallback(boost::bind(&EstimateManager::depthOdomPoseCallback, this, _1, _2, _3)); //sub
     }
     odom_sub_ = nh.subscribe("/odom", 1, &EstimateManager::odomCallback, this);
-    start_tracking_service_ = nh.advertiseService("/custom", &EstimateManager::startTrackingCallback, this);
+    // start_tracking_service_ = nh.advertiseService("/custom", &EstimateManager::startTrackingCallback, this);
+    timer_ = nh_.createTimer(ros::Duration(0.1), &EstimateManager::targetCallback, this);
   }
 
   bool EstimateManager::startTrackingCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
