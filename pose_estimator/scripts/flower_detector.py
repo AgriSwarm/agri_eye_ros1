@@ -119,7 +119,7 @@ class FlowerPoseEstimator:
         # 画像をOpenCVに変換
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         # 180度回転
-        # cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
+        cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
 
         # YOLOでBBox検出
         if self.estimate_pos:
@@ -140,7 +140,9 @@ class FlowerPoseEstimator:
         if len(boxes) == 0:
             rospy.logwarn("No boxes detected.")
             if self.pub_image:
-                self.image_pub.publish(image_msg)
+                rotate_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding='bgr8')
+                rotate_msg.header = image_msg.header
+                self.image_pub.publish(rotate_msg)
             return
 
         height, width = cv_image.shape[:2]
