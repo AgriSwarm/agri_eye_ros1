@@ -5,7 +5,7 @@
     <arg name="inverse_depth" default="false" />
     <arg name="camera_coordinate" default="false" />
     <arg name="identity_threshold" default="0.1" />
-    <arg name="tracking_distance" default="0.3" />
+    <arg name="tracking_distance" default="0.5" />
     <arg name="lost_time_threshold" default="3.0" />
     <arg name="world_frame_id" default="world" />
     <arg name="self_id" default="0" />

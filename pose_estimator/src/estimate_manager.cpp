@@ -20,6 +20,15 @@ namespace pose_estimator
     nh_.param("lost_time_threshold", lost_time_threshold_, 1.0);
     nh_.param("world_frame_id", world_frame_id_, std::string("world"));
     nh_.param("est_detect_pose_rate", est_detect_pose_rate_, 10.0);
+    // nh_.param("approximated_target_pose", approximated_target_pose_, Eigen::Vector3d(0.0, 0.0, 0.0));
+    std::vector<double> temp_vector;
+    nh_.param("approximated_target_pose", temp_vector, std::vector<double>{0.0, 0.0, 0.0});
+    if (temp_vector.size() == 3) {
+        approximated_target_pose_ = Eigen::Vector3d(temp_vector[0], temp_vector[1], temp_vector[2]);
+    } else {
+        approximated_target_pose_ = Eigen::Vector3d(0.0, 0.0, 0.0);
+    }
+    nh_.param("sensing_distance", sensing_radius_, 1.0);
 
     cv::FileStorage general_fs;
 
@@ -44,6 +53,12 @@ namespace pose_estimator
     Eigen::Matrix4d imu2cam_, base2imu;
     general_fs["imu_T_depth_cam"] >> T_imu_cam;
     general_fs["base_T_imu"] >> T_base_imu;
+    // if(general_fs["approximated_target_pose"] != NULL)
+    // {
+    //   cv::Mat approximated_target_pose;
+    //   general_fs["approximated_target_pose"] >> approximated_target_pose;
+    //   approximated_target_pose_ << approximated_target_pose.at<double>(0), approximated_target_pose.at<double>(1), approximated_target_pose.at<double>(2);
+    // }
     cv::cv2eigen(T_imu_cam, imu2cam_);
     cv::cv2eigen(T_base_imu, base2imu);
     body2cam_ = base2imu * imu2cam_;
@@ -58,6 +73,7 @@ namespace pose_estimator
 
     depth_sub_.reset(new message_filters::Subscriber<sensor_msgs::Image>(nh, "/depth", 50));
     flower_poses_sub_.reset(new message_filters::Subscriber<agri_eye_msgs::EstimatedPose2DArray>(nh, "/flower_poses", 100));
+    approximated_target_pose_sub_ = nh.subscribe<quadrotor_msgs::Ball>("/approximated_target_pose", 1, &EstimateManager::approximatedTargetPoseCallback, this);
 
     if (camera_coordinate_)
     {
@@ -77,6 +93,12 @@ namespace pose_estimator
     odom_sub_ = nh.subscribe("/odom", 1, &EstimateManager::odomCallback, this);
     // start_tracking_service_ = nh.advertiseService("/custom", &EstimateManager::startTrackingCallback, this);
     timer_ = nh_.createTimer(ros::Duration(0.1), &EstimateManager::targetCallback, this);
+  }
+
+  void EstimateManager::approximatedTargetPoseCallback(const quadrotor_msgs::Ball::ConstPtr &msg)
+  {
+    approximated_target_pose_ << msg->centroid.x, msg->centroid.y, msg->centroid.z;
+    sensing_radius_ = msg->radius;
   }
 
   bool EstimateManager::startTrackingCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
@@ -115,8 +137,9 @@ namespace pose_estimator
         visualizeFlowerPoses(flower_poses, target_pose_marker_pub_, Color::GREEN);
       }
     }else{
+      // TODO: p \in B
       FlowerPosePtr pose = searchNearbyFlowerPose(flower_poses_, 100);
-      if (pose != nullptr)
+      if (pose != nullptr && checkInBall(pose, approximated_target_pose_, sensing_radius_))
       {
         quadrotor_msgs::TrackingPose tracking_pose;
         tracking_pose.center.x = pose->position(0);
@@ -300,7 +323,7 @@ namespace pose_estimator
     if(navigation_mode_ == Mode::ON_SEARCH)
     {
       target_flower_pose_ = searchNearbyFlowerPose(flower_poses, capture_area_radius_);
-      if (target_flower_pose_ != nullptr)
+      if (target_flower_pose_ != nullptr && checkInBall(target_flower_pose_, approximated_target_pose_, sensing_radius_))
       {
         ROS_INFO("Mode changed from ON_SEARCH to ON_TRACK");
         navigation_mode_ = Mode::ON_TRACK;
@@ -341,6 +364,23 @@ namespace pose_estimator
     else
     {
       return nullptr;
+    }
+  }
+
+  bool EstimateManager::checkInBall(const FlowerPosePtr &target_flower_pose, Eigen::Vector3d centroid, double radius)
+  {
+    // ROS_INFO("checkInBall");
+    if(target_flower_pose == nullptr)
+    {
+      return false;
+    }
+    if((target_flower_pose->position - centroid).norm() < radius)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
 

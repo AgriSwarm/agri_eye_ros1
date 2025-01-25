@@ -20,6 +20,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <quadrotor_msgs/TrackingPose.h>
+#include <quadrotor_msgs/Ball.h>
 #include <std_srvs/Empty.h>
 #include <std_srvs/SetBool.h>
 #include <std_msgs/Float32.h>
@@ -58,7 +59,7 @@ namespace pose_estimator
 
   private:
     ros::NodeHandle nh_;
-    ros::Subscriber extrinsic_sub_, odom_sub_;
+    ros::Subscriber extrinsic_sub_, odom_sub_, approximated_target_pose_sub_;
     ros::Publisher flower_poses_pub_, flower_poses_marker_pub_, target_flower_pose_pub_, target_pose_marker_pub_, pose_estimate_delay_pub;
     ros::ServiceServer start_tracking_service_;
     ros::Timer timer_;
@@ -88,9 +89,12 @@ namespace pose_estimator
     Eigen::Quaterniond drone_orientation_;
     Mode navigation_mode_;
     std::string world_frame_id_;
+    Eigen::Vector3d approximated_target_pose_;
+    double sensing_radius_;
 
     bool startTrackingCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
     void extrinsicCallback(const nav_msgs::Odometry::ConstPtr &msg);
+    void approximatedTargetPoseCallback(const quadrotor_msgs::Ball::ConstPtr &msg);
 
     void depthOdomPoseCallback(const sensor_msgs::Image::ConstPtr &depth_msg,
                               const nav_msgs::Odometry::ConstPtr &odom_msg,
@@ -110,6 +114,7 @@ namespace pose_estimator
     void selectTargetFlowerPose(FlowerPoseArray &flower_poses);
     FlowerPosePtr searchNearbyFlowerPose(const FlowerPoseArray &flower_poses, double threshold_distance);
     FlowerPosePtr correctFlowerPose(const FlowerPosePtr &target_flower_pose, const FlowerPoseArray &flower_poses);
+    bool checkInBall(const FlowerPosePtr &target_flower_pose, Eigen::Vector3d centroid, double radius);
   };
 } // namespace pose_estimator
 
