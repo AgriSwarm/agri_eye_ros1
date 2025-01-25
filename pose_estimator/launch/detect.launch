@@ -19,6 +19,7 @@
         <param name="tracking_distance" type="double" value="$(arg tracking_distance)" />
         <param name="lost_time_threshold" type="double" value="$(arg lost_time_threshold)" />
         <param name="world_frame_id" type="string" value="$(arg world_frame_id)" />
+        <param name="capture_area_margin" type="double" value="1.5" />
         <remap from="depth" to="/camera/aligned_depth_to_color/image_raw" />
         <remap from="flower_poses" to="pose_estimator/flower_poses"/>
         <remap from="odom" to="/d2vins/odometry" />

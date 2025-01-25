@@ -16,7 +16,7 @@ namespace pose_estimator
     nh_.param("camera_coordinate", camera_coordinate_, false);
     nh_.param("identity_threshold", identity_threshold_, 0.5);
     nh_.param("tracking_distance", tracking_distance_, 0.5);
-    nh_.param("capture_area_margin", capture_area_margin_, 0.5);
+    nh_.param("capture_area_margin", capture_area_margin_, 1.0);
     nh_.param("lost_time_threshold", lost_time_threshold_, 1.0);
     nh_.param("world_frame_id", world_frame_id_, std::string("world"));
     nh_.param("est_detect_pose_rate", est_detect_pose_rate_, 10.0);
