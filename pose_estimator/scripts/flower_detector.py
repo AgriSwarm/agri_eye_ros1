@@ -47,6 +47,8 @@ class FlowerPoseEstimator:
         self.use_fp16 = rospy.get_param('~use_fp16', False)
         self.use_fp16_dla = rospy.get_param('~use_fp16_dla', False)
         self.use_int8 = rospy.get_param('~use_int8', False)
+        self.rotate_image = rospy.get_param('~rotate_image', False)
+
         if self.use_tensorrt:
             if self.use_fp16:
                 print("Using FP16 TensorRT engine.")
@@ -134,7 +136,8 @@ class FlowerPoseEstimator:
         # 画像をOpenCVに変換
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         # 180度回転
-        cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
+        if self.rotate_image:
+            cv_image = cv2.rotate(cv_image, cv2.ROTATE_180)
 
         # YOLOでBBox検出
         if self.estimate_pos:
@@ -270,8 +273,8 @@ class FlowerPoseEstimator:
                 R = self.sixd_model(input_tensor)  # shape: [B, 3, 3]
             R_np = R[0].cpu().numpy()  # (3,3)
 
-        R_np = np.identity(3)
-        R_np = np.dot(R_np, utils.get_R(3.141592653589793, 0, 0))
+        # R_np = np.identity(3)
+        # R_np = np.dot(R_np, utils.get_R(3.141592653589793, 0, 0))
 
         r = Rotation.from_matrix(R_np)
         euler = r.as_euler("xyz", degrees=True)

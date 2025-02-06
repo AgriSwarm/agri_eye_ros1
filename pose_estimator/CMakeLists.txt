@@ -13,12 +13,13 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
     quadrotor_msgs
     agri_eye_msgs
+    sensor_msgs
     camera_models
     cv_bridge
     roslib
     message_generation
     tf
-    cv_bridge
+    image_transport
     )
 
 SET("OpenCV_DIR"  "/usr/local/share/OpenCV/")
@@ -56,6 +57,8 @@ add_executable(fake_estimator
     src/fake_estimator.cpp
     )
 
+add_executable(webcam src/webcam.cpp)
+
 target_link_libraries(pose_estimator 
     ${catkin_LIBRARIES}  
     ${OpenCV_LIBRARIES}
@@ -64,6 +67,11 @@ target_link_libraries(pose_estimator
 target_link_libraries(fake_estimator 
     ${catkin_LIBRARIES}  
     ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(webcam
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 # message("catkin_lib  ${catkin_LIBRARIES}")
 
