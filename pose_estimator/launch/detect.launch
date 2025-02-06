@@ -5,7 +5,7 @@
     <arg name="inverse_depth" default="false" />
     <arg name="camera_coordinate" default="false" />
     <arg name="identity_threshold" default="0.1" />
-    <arg name="tracking_distance" default="0.5" />
+    <arg name="tracking_distance" default="0.35" />
     <arg name="lost_time_threshold" default="5.0" />
     <arg name="world_frame_id" default="world" />
     <arg name="self_id" default="0" />
@@ -28,7 +28,7 @@
 
     <node name="flower_detector" pkg="pose_estimator" type="flower_detector.py" output="screen">
         <param name="drone_id" type="int" value="$(arg self_id)" />
-        <param name="conf_threshold" type="double" value="0.5" />
+        <param name="conf_threshold" type="double" value="0.3" />
         <param name="estimate_pos" type="bool" value="true" />
         <param name="estimate_att" type="bool" value="true" />
         <param name="estimate_whole_att" type="bool" value="false" />
