@@ -1,0 +1,34 @@
+
+<launch>
+    <arg name="config_path" default="$(find agri_resources)/config/drones/duckey/orin_nx_distrib.yaml" />
+    <arg name="depth_scaling_factor" default="0.001" />
+    <arg name="inverse_depth" default="false" />
+    <arg name="camera_coordinate" default="false" />
+    <arg name="identity_threshold" default="0.1" />
+    <arg name="tracking_distance" default="0.5" />
+    <arg name="lost_time_threshold" default="5.0" />
+    <arg name="world_frame_id" default="world" />
+    <arg name="self_id" default="0" />
+
+    <node name="webcam" pkg="pose_estimator" type="webcam" output="screen">
+        <param name="camera_number" type="int" value="2" />
+        <param name="fps" type="int" value="30" />
+    </node>
+
+    <node name="flower_detector" pkg="pose_estimator" type="flower_detector.py" output="screen">
+        <param name="drone_id" type="int" value="$(arg self_id)" />
+        <param name="conf_threshold" type="double" value="0.5" />
+        <param name="estimate_pos" type="bool" value="true" />
+        <param name="estimate_att" type="bool" value="true" />
+        <param name="estimate_whole_att" type="bool" value="false" />
+        <param name="use_tensorrt" type="bool" value="true" />
+        <param name="use_fp16" type="bool" value="true" />
+        <param name="use_fp16_dla" type="bool" value="false" />
+        <param name="use_int8" type="bool" value="false" />
+        <param name="pub_image" type="bool" value="true" />
+        <param name="verbose" type="bool" value="false" />
+        <param name="rotate_image" type="bool" value="false" />
+        <param name="inference_freq" type="double" value="10.0" />
+        <remap from="flower_poses" to="pose_estimator/flower_poses"/>
+    </node>
+</launch>
